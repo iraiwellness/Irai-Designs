@@ -63,11 +63,6 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
-
-  /* ── Web shell utilities ──────────────────────────────────────────────── */
-  .web-page-container {
-    @apply max-w-[1280px] mx-auto;
-  }
 }
 
 /* ── Custom scrollbar ─────────────────────────────────────────────────────── */

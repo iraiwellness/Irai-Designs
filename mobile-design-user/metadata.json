@@ -1,0 +1,6 @@
+{
+  "name": "IRAI Wellness Platform",
+  "description": "A comprehensive AI-powered yoga and health platform offering online sessions, specialist bookings, and personalized progress tracking.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": []
+}
