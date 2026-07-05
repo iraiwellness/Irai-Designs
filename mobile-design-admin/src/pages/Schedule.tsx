@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Clock, User, Play, Users, Wind, Leaf } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { format, addDays, startOfToday, isSameDay } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { MOCK_APPOINTMENTS, MOCK_GROUP_SESSIONS } from '../mockData';
@@ -17,11 +18,11 @@ const SLOTS = [
   { time: '04:00 PM', status: 'available'                                         },
 ];
 
-const CAT_ICON: Record<string, React.FC<{ size?: number; className?: string }>> = {
-  yoga:       (p) => <Users       {...p} />,
-  breathwork: (p) => <Wind        {...p} />,
-  meditation: (p) => <Leaf        {...p} />,
-  mobility:   (p) => <Users       {...p} />,
+const CAT_ICON: Record<string, LucideIcon> = {
+  yoga:       Users,
+  breathwork: Wind,
+  meditation: Leaf,
+  mobility:   Users,
 };
 
 const CAT_COLOR: Record<string, string> = {
