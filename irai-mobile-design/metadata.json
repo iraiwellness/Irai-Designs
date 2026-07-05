@@ -1,0 +1,9 @@
+{
+  "name": "IrAi Practitioner",
+  "description": "Professional wellness practitioner dashboard for nutritionists, psychologists, and therapists.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": []
+}

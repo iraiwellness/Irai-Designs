@@ -1,0 +1,12 @@
+.DS_Store
+*.log
+.env
+.env.local
+.env.*
+!.env.example
+
+# Dependencies & build output (all subprojects)
+**/node_modules/
+**/dist/
+**/build/
+**/coverage/
