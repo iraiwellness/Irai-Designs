@@ -1,6 +1,6 @@
 import {
   Home, Users, Calendar, MessageSquare,
-  LayoutDashboard, CalendarCheck, CalendarRange, UserCheck, ShieldAlert,
+  LayoutDashboard, CalendarCheck, CalendarRange, UserCheck, ShieldAlert, Settings2,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -25,4 +25,5 @@ export const ADMIN_NAV: NavItem[] = [
   { icon: UserCheck,       label: 'Therapists', path: '/admin/therapists',  end: false },
   { icon: Users,           label: 'Users',      path: '/admin/users',       end: false },
   { icon: ShieldAlert,     label: 'Disputes',   path: '/admin/disputes',    end: false },
+  { icon: Settings2,       label: 'Settings',   path: '/admin/settings',    end: false },
 ];

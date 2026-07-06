@@ -1,13 +1,51 @@
-import { Patient, Appointment, Practitioner, AISessionNote, PractitionerGroupSession } from './types';
+import { Patient, Appointment, Practitioner, AISessionNote, PractitionerGroupSession, AttentionNotification, PersonalProfileFields, PractitionerProfileFields } from './types';
 
 export const MOCK_PRACTITIONER: Practitioner = {
   id: 'p1',
   name: 'Dr. Sarah Mitchell',
+  title: 'Clinical Nutritionist',
   specialty: 'Nutritionist',
   rating: 4.9,
   totalClients: 124,
+  totalSessions: 312,
+  activeRelationships: 118,
   experience: '8 Years',
-  about: 'Specializing in holistic nutrition and metabolic health. Helping practitioners lead a balanced life through mindful eating.',
+  about: 'Specializing in holistic nutrition and metabolic health. Helping clients lead a balanced life through mindful eating.',
+  verificationStatus: 'verified',
+};
+
+export const MOCK_ADMIN_PERSONAL_PROFILE: PersonalProfileFields = {
+  firstName: 'Admin',
+  lastName: 'User',
+  phone: '+91 90000 12345',
+  timezone: 'Asia/Kolkata',
+  emergencyName: 'Support Desk',
+  emergencyPhone: '+91 90000 12346',
+  emergencyRelation: 'colleague',
+};
+
+export const MOCK_PERSONAL_PROFILE: PersonalProfileFields = {
+  firstName: 'Sarah',
+  lastName: 'Mitchell',
+  phone: '+91 98765 43210',
+  timezone: 'Asia/Kolkata',
+  emergencyName: 'John Mitchell',
+  emergencyPhone: '+91 98765 43211',
+  emergencyRelation: 'spouse',
+};
+
+export const MOCK_PROFESSIONAL_PROFILE: PractitionerProfileFields = {
+  title: 'Clinical Nutritionist',
+  bio: 'Specializing in holistic nutrition and metabolic health. RYT-500 certified with 8+ years of clinical practice.',
+  specializations: ['hatha-yoga', 'nutrition'],
+  languages: ['en', 'hi'],
+  qualifications: ['MSc Clinical Nutrition', 'RYT-500'],
+  experienceYears: 8,
+  consultationFee: 500,
+  isOnline: true,
+  maxSessionsPerDay: 8,
+  maxSessionsPerWeek: 40,
+  bookingBufferDays: 1,
 };
 
 export const MOCK_PATIENTS: Patient[] = [
@@ -16,6 +54,9 @@ export const MOCK_PATIENTS: Patient[] = [
     name: 'Emma Watson',
     avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop',
     condition: 'PCOS Management',
+    serviceType: 'Nutrition Consultation',
+    relationshipStatus: 'active',
+    healthAccessGranted: true,
     lastConsultation: '2024-05-10',
     nextAppointment: '2024-05-15',
     email: 'emma.w@example.com',
@@ -26,6 +67,9 @@ export const MOCK_PATIENTS: Patient[] = [
     name: 'James Rodriguez',
     avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop',
     condition: 'Weight Loss',
+    serviceType: 'Nutrition Consultation',
+    relationshipStatus: 'active',
+    healthAccessGranted: false,
     lastConsultation: '2024-05-08',
     nextAppointment: '2024-05-20',
     email: 'james.r@example.com',
@@ -36,16 +80,61 @@ export const MOCK_PATIENTS: Patient[] = [
     name: 'Sophia Chen',
     avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop',
     condition: 'Ketogenic Diet',
+    serviceType: 'Nutrition Consultation',
+    relationshipStatus: 'active',
+    healthAccessGranted: true,
     lastConsultation: '2024-05-01',
     nextAppointment: '2024-05-18',
     email: 'sophia.c@example.com',
     phone: '+1 234 567 8903',
+  },
+  {
+    id: 'rel-1',
+    name: 'Priya Sharma',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop',
+    condition: 'General wellness',
+    serviceType: 'Nutrition Consultation',
+    relationshipStatus: 'requested',
+    healthAccessGranted: false,
+    requestedAt: '2 hours ago',
+    lastConsultation: '',
+    nextAppointment: '',
+    email: 'priya@example.com',
+    phone: '+91 98765 11111',
+  },
+  {
+    id: 'rel-2',
+    name: 'Arjun Mehta',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop',
+    condition: 'Back pain recovery',
+    serviceType: 'Yoga Therapy',
+    relationshipStatus: 'requested',
+    healthAccessGranted: false,
+    requestedAt: 'Yesterday',
+    lastConsultation: '',
+    nextAppointment: '',
+    email: 'arjun@example.com',
+    phone: '+91 98765 22222',
+  },
+  {
+    id: 'pt4',
+    name: 'Lakshmi Iyer',
+    avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&h=150&fit=crop',
+    condition: 'Diabetes management',
+    serviceType: 'Nutrition Consultation',
+    relationshipStatus: 'ended',
+    healthAccessGranted: false,
+    lastConsultation: '2024-01-15',
+    nextAppointment: '',
+    email: 'lakshmi@example.com',
+    phone: '+91 98765 33333',
   },
 ];
 
 export const MOCK_APPOINTMENTS: Appointment[] = [
   {
     id: 'a1',
+    bookingId: 'IY-2026-00042',
     patientId: 'pt1',
     patientName: 'Emma Watson',
     time: '09:00 AM',
@@ -55,6 +144,7 @@ export const MOCK_APPOINTMENTS: Appointment[] = [
   },
   {
     id: 'a2',
+    bookingId: 'IY-2026-00043',
     patientId: 'pt2',
     patientName: 'James Rodriguez',
     time: '11:30 AM',
@@ -64,6 +154,7 @@ export const MOCK_APPOINTMENTS: Appointment[] = [
   },
   {
     id: 'a3',
+    bookingId: 'IY-2026-00038',
     patientId: 'pt1',
     patientName: 'Emma Watson',
     time: '02:00 PM',
@@ -224,6 +315,25 @@ export const MOCK_AI_NOTES: AISessionNote[] = [
     painBefore: 1,
     painAfter: 1,
     aiConfidence: 93,
+  },
+];
+
+export const MOCK_ATTENTION_NOTIFICATIONS: AttentionNotification[] = [
+  {
+    id: 'n1',
+    type: 'new_message',
+    title: 'New message from Emma Watson',
+    body: 'Can we reschedule tomorrow\'s session?',
+    createdAt: '30 min ago',
+    isRead: false,
+  },
+  {
+    id: 'n2',
+    type: 'session_reminder',
+    title: 'Session in 1 hour',
+    body: 'Follow-up with James Rodriguez at 11:30 AM',
+    createdAt: '1 hour ago',
+    isRead: false,
   },
 ];
 

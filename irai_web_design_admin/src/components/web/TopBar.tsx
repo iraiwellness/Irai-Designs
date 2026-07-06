@@ -87,7 +87,7 @@ export default function TopBar({ workspace, navItems }: TopBarProps) {
               type="button"
               onClick={() => {
                 setMenuOpen(false);
-                navigate(workspace === 'admin' ? '/admin' : '/practitioner/profile');
+                navigate(workspace === 'admin' ? '/admin/profile' : '/practitioner/profile');
               }}
               className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-slate hover:bg-brand-50 transition-colors"
             >
@@ -109,23 +109,25 @@ export default function TopBar({ workspace, navItems }: TopBarProps) {
   );
 
   if (navItems) {
+    const workspaceLabel = workspace === 'admin' ? 'Admin Panel' : 'Practitioner';
+
     return (
-      <header className="h-16 shrink-0 bg-white border-b border-brand-border px-6 flex items-center gap-5 sticky top-0 z-40">
+      <header className="h-16 shrink-0 bg-white border-b border-brand-border px-4 lg:px-6 flex items-center gap-3 lg:gap-5 sticky top-0 z-40">
         <div className="flex items-center gap-3 shrink-0">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#263d23] to-[#192b16] flex items-center justify-center">
             <span className="font-serif text-sm text-white/90 font-semibold">ir</span>
           </div>
           <div className="hidden md:block min-w-0">
             <p className="font-serif text-lg text-slate leading-none">IRAI</p>
-            <p className="small-caps text-[7px] text-gray-400 mt-0.5">Practitioner</p>
+            <p className="small-caps text-[7px] text-gray-400 mt-0.5">{workspaceLabel}</p>
           </div>
         </div>
 
-        <TopNav items={navItems} />
+        <div className="flex-1 min-w-0 overflow-x-auto">
+          <TopNav items={navItems} />
+        </div>
 
-        <div className="flex-1" />
-
-        <div className="relative w-52 lg:w-64 shrink-0 hidden lg:block">
+        <div className="relative w-44 xl:w-56 shrink-0 hidden xl:block">
           <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300" />
           <input
             type="search"

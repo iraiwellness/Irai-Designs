@@ -21,6 +21,9 @@ import AdminGroupSessions from './pages/admin/GroupSessions';
 import AdminTherapists from './pages/admin/Therapists';
 import AdminUsers from './pages/admin/Users';
 import AdminDisputes from './pages/admin/Disputes';
+import AdminProfile from './pages/admin/Profile';
+import AdminActivity from './pages/admin/Activity';
+import AdminSettings from './pages/admin/Settings';
 
 export default function App() {
   return (
@@ -48,6 +51,9 @@ export default function App() {
             <Route path="therapists" element={<AdminTherapists />} />
             <Route path="users"      element={<AdminUsers />} />
             <Route path="disputes"   element={<AdminDisputes />} />
+            <Route path="profile"    element={<AdminProfile />} />
+            <Route path="activity"   element={<AdminActivity />} />
+            <Route path="settings"   element={<AdminSettings />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

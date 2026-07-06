@@ -8,7 +8,7 @@ interface TopNavProps {
 
 export default function TopNav({ items }: TopNavProps) {
   return (
-    <nav className="flex items-center gap-1">
+    <nav className="flex items-center gap-1 w-max">
       {items.map(item => (
         <NavLink
           key={item.path}
@@ -16,7 +16,7 @@ export default function TopNav({ items }: TopNavProps) {
           end={item.end}
           className={({ isActive }) =>
             cn(
-              'flex items-center gap-2 px-3.5 py-2 rounded-xl text-[13px] font-medium transition-all',
+              'flex items-center gap-2 px-3 py-2 rounded-xl text-[13px] font-medium transition-all whitespace-nowrap',
               isActive
                 ? 'bg-[#f0f4ee] text-forest'
                 : 'text-gray-500 hover:bg-brand-50 hover:text-slate',
@@ -29,7 +29,7 @@ export default function TopNav({ items }: TopNavProps) {
                 size={16}
                 className={cn('shrink-0', isActive ? 'text-forest' : 'text-gray-400')}
               />
-              <span>{item.label}</span>
+              <span className="hidden sm:inline">{item.label}</span>
             </>
           )}
         </NavLink>

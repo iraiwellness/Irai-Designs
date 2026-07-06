@@ -5,9 +5,16 @@ import {
   Sparkles, ChevronDown, ChevronUp, AlertTriangle, Info, CheckCircle2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import type { Patient } from '../../types';
+import type { Patient, RelationshipStatus } from '../../types';
 import { MOCK_AI_NOTES } from '../../mockData';
 import { cn } from '../../lib/utils';
+
+const RELATIONSHIP_STYLE: Record<RelationshipStatus, string> = {
+  active: 'bg-[#f0f4ee] text-forest',
+  requested: 'bg-amber-50 text-amber-700',
+  rejected: 'bg-[#fdf3ec] text-terracotta',
+  ended: 'bg-gray-50 text-gray-400',
+};
 
 const SEVERITY_STYLE = {
   alert:   'bg-[#fdf3ec] border-terracotta/20 text-terracotta',
@@ -43,12 +50,16 @@ export default function PatientPreview({ patient, compact = false }: PatientPrev
         <img src={patient.avatar} alt={patient.name} className="w-16 h-16 rounded-2xl object-cover border border-brand-border" />
         <div className="flex-1 min-w-0">
           <h2 className="serif text-2xl text-slate leading-tight">{patient.name}</h2>
-          <p className="text-[13px] text-forest mt-0.5">{patient.condition}</p>
+          <p className="text-[13px] text-gray-400 mt-0.5">{patient.serviceType}</p>
           <div className="flex flex-wrap gap-2 mt-2">
-            <span className="text-[11px] px-2.5 py-1 rounded-full bg-[#f0f4ee] text-forest font-semibold">Active</span>
-            <span className="text-[11px] text-gray-400">
-              Last visit {new Date(patient.lastConsultation + 'T12:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            <span className={cn('text-[11px] px-2.5 py-1 rounded-full font-semibold capitalize', RELATIONSHIP_STYLE[patient.relationshipStatus])}>
+              {patient.relationshipStatus}
             </span>
+            {patient.lastConsultation && (
+              <span className="text-[11px] text-gray-400">
+                Last visit {new Date(patient.lastConsultation + 'T12:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              </span>
+            )}
           </div>
         </div>
         {!compact && (
@@ -92,18 +103,20 @@ export default function PatientPreview({ patient, compact = false }: PatientPrev
         {activeTab === 'overview' && (
           <motion.div key="overview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-brand-50 rounded-xl border border-brand-border p-4 flex items-center gap-3">
-                <div className="w-9 h-9 bg-[#f0f4ee] rounded-xl flex items-center justify-center">
-                  <Calendar size={16} className="text-forest" />
+              {patient.nextAppointment && (
+                <div className="bg-brand-50 rounded-xl border border-brand-border p-4 flex items-center gap-3">
+                  <div className="w-9 h-9 bg-[#f0f4ee] rounded-xl flex items-center justify-center">
+                    <Calendar size={16} className="text-forest" />
+                  </div>
+                  <div>
+                    <p className="small-caps text-[8px] text-gray-400">Next Appt.</p>
+                    <p className="text-[13px] font-bold text-slate">
+                      {new Date(patient.nextAppointment + 'T12:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="small-caps text-[8px] text-gray-400">Next Appt.</p>
-                  <p className="text-[13px] font-bold text-slate">
-                    {new Date(patient.nextAppointment + 'T12:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </p>
-                </div>
-              </div>
-              <div className="bg-brand-50 rounded-xl border border-brand-border p-4 flex items-center gap-3">
+              )}
+              <div className={cn('bg-brand-50 rounded-xl border border-brand-border p-4 flex items-center gap-3', !patient.nextAppointment && 'col-span-2')}>
                 <div className="w-9 h-9 bg-[#f0f4ee] rounded-xl flex items-center justify-center">
                   <Activity size={16} className="text-forest" />
                 </div>
@@ -112,6 +125,22 @@ export default function PatientPreview({ patient, compact = false }: PatientPrev
                   <p className="text-[13px] font-bold text-slate">{aiNotes.length} sessions</p>
                 </div>
               </div>
+            </div>
+
+            <div className="bg-brand-50 rounded-xl border border-brand-border p-4 space-y-2">
+              <p className="small-caps text-[8px] text-gray-400">Health Documents</p>
+              {patient.healthAccessGranted ? (
+                <p className="text-[13px] text-forest font-medium flex items-center gap-2">
+                  <CheckCircle2 size={14} /> Access granted — view in full profile
+                </p>
+              ) : (
+                <div className="flex items-start gap-2">
+                  <AlertTriangle size={14} className="text-amber-500 shrink-0 mt-0.5" />
+                  <p className="text-[12px] text-gray-500 leading-relaxed">
+                    No health document access. Patient must grant access before you can view medical records.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="bg-brand-50 rounded-xl border border-brand-border p-4 space-y-2">

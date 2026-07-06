@@ -1,5 +1,5 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ChevronRight, FileText } from 'lucide-react';
+import { ChevronRight, FileText, CheckCircle2 } from 'lucide-react';
 import { MOCK_PATIENTS } from '../../mockData';
 import PatientPreview from '../../components/practitioner/PatientPreview';
 
@@ -28,7 +28,29 @@ export default function PatientDetail() {
         {/* Sidebar */}
         <div className="space-y-4">
           <div className="bg-white rounded-2xl border border-brand-border shadow-sm p-5">
-            <p className="small-caps text-[8px] text-gray-400 mb-4">Quick Actions</p>
+            <p className="small-caps text-[8px] text-gray-400 mb-3">Health Documents</p>
+            {patient.healthAccessGranted ? (
+              <div className="space-y-2">
+                <p className="text-[13px] text-forest font-medium flex items-center gap-2">
+                  <CheckCircle2 size={14} /> Access granted
+                </p>
+                <p className="text-[12px] text-gray-400">Lab reports, prescriptions, and merged health summary available.</p>
+                <button type="button" className="w-full py-2.5 mt-2 bg-[#f0f4ee] text-forest rounded-xl text-[12px] font-bold hover:bg-[#e4ebe0] transition-colors">
+                  View Documents
+                </button>
+              </div>
+            ) : (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                <p className="text-[13px] font-semibold text-amber-800 mb-1">Access not granted</p>
+                <p className="text-[12px] text-amber-700 leading-relaxed">
+                  Patient must grant document access from their app before you can view medical records.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white rounded-2xl border border-brand-border shadow-sm p-5">
+            <p className="small-caps text-[8px] text-gray-400 mb-4">Actions</p>
             <div className="space-y-2">
               <button
                 onClick={() => navigate('/practitioner/chats')}
