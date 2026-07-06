@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import {
   LogOut, Shield, CreditCard, Bell, ChevronRight, Edit3, Star, Users,
-  CheckCircle2, Clock, AlertTriangle, ShieldAlert, Globe, Phone,
+  CheckCircle2, Clock, AlertTriangle, ShieldAlert, Upload,
+  Download, UserX, Plus, X, Video, RefreshCw,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import Modal from '../../components/ui/Modal';
+import PublicProfilePreview from '../../components/practitioner/PublicProfilePreview';
 import {
   MOCK_PRACTITIONER, MOCK_PERSONAL_PROFILE, MOCK_PROFESSIONAL_PROFILE,
+  LOOKUP_SPECIALIZATIONS, LOOKUP_LANGUAGES, MOCK_PRACTITIONER_EXPORT_DATA,
 } from '../../mockData';
 import { useAuth } from '../../context/AuthContext';
 import { cn } from '../../lib/utils';
@@ -48,8 +52,12 @@ const ACCOUNT_PREFERENCES = [
 ];
 
 const LANGUAGE_LABELS: Record<string, string> = {
-  en: 'English', hi: 'Hindi', ta: 'Tamil', te: 'Telugu',
+  en: 'English', hi: 'Hindi', ta: 'Tamil', te: 'Telugu', ml: 'Malayalam', kn: 'Kannada',
 };
+
+function specName(slug: string) {
+  return LOOKUP_SPECIALIZATIONS.find(s => s.slug === slug)?.name ?? slug;
+}
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -58,9 +66,61 @@ export default function Profile() {
   const [personal, setPersonal] = useState(MOCK_PERSONAL_PROFILE);
   const [professional, setProfessional] = useState(MOCK_PROFESSIONAL_PROFILE);
   const [editingSection, setEditingSection] = useState<'personal' | 'professional' | null>(null);
+  const [showExport, setShowExport] = useState(false);
+  const [showDeactivate, setShowDeactivate] = useState(false);
+  const [exportDone, setExportDone] = useState(false);
+  const [deactivated, setDeactivated] = useState(false);
+  const [newQualification, setNewQualification] = useState('');
+  const [showRefresh, setShowRefresh] = useState(false);
+  const [refreshDone, setRefreshDone] = useState(false);
 
   const handleLogout = () => { logout(); navigate('/', { replace: true }); };
   const verification = MOCK_PRACTITIONER.verificationStatus;
+
+  const handleExport = () => {
+    const blob = new Blob([JSON.stringify(MOCK_PRACTITIONER_EXPORT_DATA, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'irai-practitioner-data-export.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    setExportDone(true);
+  };
+
+  const handleDeactivate = () => {
+    setDeactivated(true);
+    setShowDeactivate(false);
+    setTimeout(() => { logout(); navigate('/', { replace: true }); }, 1500);
+  };
+
+  const addSpecialization = (slug: string) => {
+    if (professional.specializations.includes(slug)) return;
+    setProfessional(p => ({ ...p, specializations: [...p.specializations, slug] }));
+  };
+
+  const removeSpecialization = (slug: string) => {
+    setProfessional(p => ({ ...p, specializations: p.specializations.filter(s => s !== slug) }));
+  };
+
+  const addLanguage = (code: string) => {
+    if (professional.languages.includes(code)) return;
+    setProfessional(p => ({ ...p, languages: [...p.languages, code] }));
+  };
+
+  const removeLanguage = (code: string) => {
+    setProfessional(p => ({ ...p, languages: p.languages.filter(l => l !== code) }));
+  };
+
+  const addQualification = () => {
+    const q = newQualification.trim();
+    if (!q || professional.qualifications.includes(q)) return;
+    setProfessional(p => ({ ...p, qualifications: [...p.qualifications, q] }));
+    setNewQualification('');
+  };
+
+  const availableSpecs = LOOKUP_SPECIALIZATIONS.filter(s => !professional.specializations.includes(s.slug));
+  const availableLangs = LOOKUP_LANGUAGES.filter(l => !professional.languages.includes(l.code));
 
   return (
     <div className="p-6 lg:p-8">
@@ -68,6 +128,13 @@ export default function Profile() {
         <p className="small-caps text-gray-400 mb-1">Practitioner</p>
         <h1 className="serif text-4xl text-slate leading-tight">Profile</h1>
       </div>
+
+      {deactivated && (
+        <div className="mb-6 rounded-2xl border border-forest/20 bg-[#f0f4ee] p-4 flex items-center gap-3">
+          <CheckCircle2 size={18} className="text-forest" />
+          <p className="text-[13px] font-medium text-forest">Account deactivated. Signing out…</p>
+        </div>
+      )}
 
       {verification !== 'verified' && (
         <div className={cn(
@@ -100,8 +167,9 @@ export default function Profile() {
                 alt={displayName}
                 className="w-24 h-24 rounded-2xl border-4 border-white/20 object-cover mx-auto"
               />
-              <button type="button" className="absolute -bottom-1 -right-1 w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-md">
-                <Edit3 size={13} className="text-forest" />
+              <button type="button" title="PATCH /accounts/me/ — avatar upload"
+                className="absolute -bottom-1 -right-1 w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-md">
+                <Upload size={13} className="text-forest" />
               </button>
             </div>
             <h2 className="serif text-2xl leading-none mb-1">{displayName}</h2>
@@ -114,6 +182,11 @@ export default function Profile() {
                 <><Clock size={12} /> {verification}</>
               )}
             </div>
+            {professional.verifiedAt && verification === 'verified' && (
+              <p className="text-[10px] text-white/30 mt-2">
+                Verified {new Date(professional.verifiedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              </p>
+            )}
           </div>
 
           <div className="bg-white rounded-2xl border border-brand-border shadow-sm">
@@ -152,12 +225,12 @@ export default function Profile() {
               </button>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {[
+              {([
                 { label: 'First name', key: 'firstName' as const },
                 { label: 'Last name', key: 'lastName' as const },
-                { label: 'Phone', key: 'phone' as const, icon: Phone },
-                { label: 'Timezone', key: 'timezone' as const, icon: Globe },
-              ].map(field => (
+                { label: 'Phone', key: 'phone' as const },
+                { label: 'Timezone', key: 'timezone' as const },
+              ]).map(field => (
                 <div key={field.key}>
                   <p className="small-caps text-[8px] text-gray-400 mb-1">{field.label}</p>
                   {editingSection === 'personal' ? (
@@ -169,12 +242,48 @@ export default function Profile() {
                 </div>
               ))}
             </div>
+            <div className="mt-4 pt-4 border-t border-brand-border grid grid-cols-2 gap-4">
+              <div>
+                <p className="small-caps text-[8px] text-gray-400 mb-1">Onboarding completed</p>
+                {editingSection === 'personal' ? (
+                  <button type="button" onClick={() => setPersonal(p => ({ ...p, onboardingCompleted: !p.onboardingCompleted }))}
+                    className={cn('px-3 py-1.5 rounded-lg text-[12px] font-bold border',
+                      personal.onboardingCompleted ? 'bg-forest text-white border-forest' : 'bg-white text-gray-500 border-brand-border')}>
+                    {personal.onboardingCompleted ? 'Yes' : 'No'}
+                  </button>
+                ) : (
+                  <p className="text-[14px] font-semibold text-slate">{personal.onboardingCompleted ? 'Yes' : 'No'}</p>
+                )}
+              </div>
+              <div>
+                <p className="small-caps text-[8px] text-gray-400 mb-1">Onboarding step</p>
+                {editingSection === 'personal' ? (
+                  <input type="number" min={0} max={10} value={personal.onboardingStep}
+                    onChange={e => setPersonal(p => ({ ...p, onboardingStep: parseInt(e.target.value, 10) || 0 }))}
+                    className="w-full bg-brand-50 border border-brand-border rounded-xl py-2 px-3 text-[13px] outline-none focus:border-forest/30" />
+                ) : (
+                  <p className="text-[14px] font-semibold text-slate">{personal.onboardingStep} / 10</p>
+                )}
+              </div>
+            </div>
             <div className="mt-4 pt-4 border-t border-brand-border">
               <p className="small-caps text-[8px] text-gray-400 mb-3">Emergency Contact</p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-[13px]">
-                <div><span className="text-gray-400">Name</span><p className="font-medium text-slate">{personal.emergencyName}</p></div>
-                <div><span className="text-gray-400">Phone</span><p className="font-medium text-slate">{personal.emergencyPhone}</p></div>
-                <div><span className="text-gray-400">Relation</span><p className="font-medium text-slate">{personal.emergencyRelation}</p></div>
+                {([
+                  { label: 'Name', key: 'emergencyName' as const },
+                  { label: 'Phone', key: 'emergencyPhone' as const },
+                  { label: 'Relation', key: 'emergencyRelation' as const },
+                ]).map(field => (
+                  <div key={field.key}>
+                    <span className="text-gray-400">{field.label}</span>
+                    {editingSection === 'personal' ? (
+                      <input value={personal[field.key]} onChange={e => setPersonal(p => ({ ...p, [field.key]: e.target.value }))}
+                        className="w-full mt-1 bg-brand-50 border border-brand-border rounded-xl py-2 px-3 text-[13px] outline-none focus:border-forest/30" />
+                    ) : (
+                      <p className="font-medium text-slate">{personal[field.key]}</p>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -192,15 +301,8 @@ export default function Profile() {
               </button>
             </div>
             <div className="space-y-4">
-              <div>
-                <p className="small-caps text-[8px] text-gray-400 mb-1">Title</p>
-                {editingSection === 'professional' ? (
-                  <input value={professional.title} onChange={e => setProfessional(p => ({ ...p, title: e.target.value }))}
-                    className="w-full bg-brand-50 border border-brand-border rounded-xl py-2 px-3 text-[13px] outline-none focus:border-forest/30" />
-                ) : (
-                  <p className="text-[14px] font-semibold text-slate">{professional.title}</p>
-                )}
-              </div>
+              <Field label="Title" editing={editingSection === 'professional'}
+                value={professional.title} onChange={v => setProfessional(p => ({ ...p, title: v }))} />
               <div>
                 <p className="small-caps text-[8px] text-gray-400 mb-1">Bio</p>
                 {editingSection === 'professional' ? (
@@ -211,31 +313,184 @@ export default function Profile() {
                 )}
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {[
-                  { label: 'Fee (₹)', key: 'consultationFee' as const },
-                  { label: 'Experience (yrs)', key: 'experienceYears' as const },
-                  { label: 'Max/day', key: 'maxSessionsPerDay' as const },
-                  { label: 'Max/week', key: 'maxSessionsPerWeek' as const },
-                ].map(f => (
+                {([
+                  { label: 'Fee (₹)', key: 'consultationFee' as const, type: 'number' },
+                  { label: 'Experience (yrs)', key: 'experienceYears' as const, type: 'number' },
+                  { label: 'Max/day', key: 'maxSessionsPerDay' as const, type: 'number' },
+                  { label: 'Max/week', key: 'maxSessionsPerWeek' as const, type: 'number' },
+                ]).map(f => (
                   <div key={f.key}>
                     <p className="small-caps text-[8px] text-gray-400 mb-1">{f.label}</p>
-                    <p className="text-[14px] font-semibold text-slate">{professional[f.key]}</p>
+                    {editingSection === 'professional' ? (
+                      <input type="number" value={professional[f.key]}
+                        onChange={e => setProfessional(p => ({ ...p, [f.key]: parseInt(e.target.value, 10) || 0 }))}
+                        className="w-full bg-brand-50 border border-brand-border rounded-xl py-2 px-3 text-[13px] outline-none focus:border-forest/30" />
+                    ) : (
+                      <p className="text-[14px] font-semibold text-slate">{professional[f.key]}</p>
+                    )}
                   </div>
                 ))}
               </div>
-              <div className="flex flex-wrap gap-2">
-                <p className="small-caps text-[8px] text-gray-400 w-full">Languages</p>
-                {professional.languages.map(code => (
-                  <span key={code} className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-[#f0f4ee] text-forest capitalize">
-                    {LANGUAGE_LABELS[code] ?? code}
-                  </span>
-                ))}
+              <Field label="Booking buffer (days)" editing={editingSection === 'professional'}
+                value={String(professional.bookingBufferDays)} type="number"
+                onChange={v => setProfessional(p => ({ ...p, bookingBufferDays: parseInt(v, 10) || 0 }))} />
+              <div>
+                <p className="small-caps text-[8px] text-gray-400 mb-1 flex items-center gap-1">
+                  <Video size={12} /> Video intro URL
+                </p>
+                {editingSection === 'professional' ? (
+                  <input value={professional.videoIntroUrl} onChange={e => setProfessional(p => ({ ...p, videoIntroUrl: e.target.value }))}
+                    className="w-full bg-brand-50 border border-brand-border rounded-xl py-2 px-3 text-[13px] outline-none focus:border-forest/30 font-mono text-[12px]" />
+                ) : (
+                  <p className="text-[12px] font-mono text-gray-500 truncate">{professional.videoIntroUrl || '—'}</p>
+                )}
               </div>
-              <div className="flex items-center gap-2">
-                <span className={cn('w-2 h-2 rounded-full', professional.isOnline ? 'bg-forest' : 'bg-gray-300')} />
-                <span className="text-[13px] text-slate">{professional.isOnline ? 'Online — accepting clients' : 'Offline'}</span>
+              <div>
+                <p className="small-caps text-[8px] text-gray-400 mb-2">Qualifications</p>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {professional.qualifications.map(q => (
+                    <span key={q} className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-brand-50 border border-brand-border text-slate flex items-center gap-1">
+                      {q}
+                      {editingSection === 'professional' && (
+                        <button type="button" onClick={() => setProfessional(p => ({ ...p, qualifications: p.qualifications.filter(x => x !== q) }))}>
+                          <X size={12} className="text-gray-400" />
+                        </button>
+                      )}
+                    </span>
+                  ))}
+                </div>
+                {editingSection === 'professional' && (
+                  <div className="flex gap-2">
+                    <input value={newQualification} onChange={e => setNewQualification(e.target.value)} placeholder="Add qualification..."
+                      className="flex-1 bg-brand-50 border border-brand-border rounded-xl py-2 px-3 text-[13px] outline-none focus:border-forest/30" />
+                    <button type="button" onClick={addQualification}
+                      className="px-3 py-2 rounded-xl bg-forest text-white text-[12px] font-bold">
+                      <Plus size={14} />
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className={cn('w-2 h-2 rounded-full', professional.isOnline ? 'bg-forest' : 'bg-gray-300')} />
+                  <span className="text-[13px] text-slate">{professional.isOnline ? 'Online — accepting clients' : 'Offline'}</span>
+                </div>
+                {editingSection === 'professional' && (
+                  <button type="button" onClick={() => setProfessional(p => ({ ...p, isOnline: !p.isOnline }))}
+                    className={cn('px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-colors',
+                      professional.isOnline ? 'bg-forest text-white border-forest' : 'bg-white text-gray-500 border-brand-border')}>
+                    Toggle online
+                  </button>
+                )}
+              </div>
+              {Object.keys(professional.metadata).length > 0 && (
+                <div>
+                  <p className="small-caps text-[8px] text-gray-400 mb-2">metadata</p>
+                  <div className="bg-brand-50 rounded-xl border border-brand-border p-3 space-y-1">
+                    {Object.entries(professional.metadata).map(([k, v]) => (
+                      <div key={k} className="flex justify-between text-[12px]">
+                        <span className="text-gray-400 font-mono">{k}</span>
+                        <span className="text-slate font-medium">{String(v)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 3.4 Specializations */}
+          <div className="bg-white rounded-2xl border border-brand-border shadow-sm p-6">
+            <div className="mb-4">
+              <p className="small-caps text-gray-400">My Specializations</p>
+              <p className="text-[11px] text-gray-300 mt-0.5">GET · POST · DELETE /accounts/practitioner/specializations/</p>
+            </div>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {professional.specializations.map(slug => (
+                <span key={slug} className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-[#f0f4ee] text-forest flex items-center gap-1.5">
+                  {specName(slug)}
+                  <button type="button" onClick={() => removeSpecialization(slug)} title="DELETE">
+                    <X size={12} className="opacity-60 hover:opacity-100" />
+                  </button>
+                </span>
+              ))}
+              {professional.specializations.length === 0 && (
+                <p className="text-[13px] text-gray-400">No specializations added</p>
+              )}
+            </div>
+            {availableSpecs.length > 0 && (
+              <div>
+                <p className="small-caps text-[8px] text-gray-400 mb-2">Add from catalog · GET /accounts/specializations/</p>
+                <div className="flex flex-wrap gap-2">
+                  {availableSpecs.map(s => (
+                    <button key={s.slug} type="button" onClick={() => addSpecialization(s.slug)}
+                      className="text-[11px] font-bold px-2.5 py-1 rounded-full border border-dashed border-brand-border text-gray-500 hover:border-forest hover:text-forest flex items-center gap-1">
+                      <Plus size={12} /> {s.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 3.5 Languages */}
+          <div className="bg-white rounded-2xl border border-brand-border shadow-sm p-6">
+            <div className="mb-4">
+              <p className="small-caps text-gray-400">My Languages</p>
+              <p className="text-[11px] text-gray-300 mt-0.5">GET · POST · DELETE /accounts/practitioner/languages/</p>
+            </div>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {professional.languages.map(code => (
+                <span key={code} className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-[#eef3f9] text-[#4B7399] flex items-center gap-1.5">
+                  {LANGUAGE_LABELS[code] ?? code}
+                  <button type="button" onClick={() => removeLanguage(code)} title="DELETE">
+                    <X size={12} className="opacity-60 hover:opacity-100" />
+                  </button>
+                </span>
+              ))}
+            </div>
+            {availableLangs.length > 0 && (
+              <div>
+                <p className="small-caps text-[8px] text-gray-400 mb-2">Add from catalog · GET /accounts/languages/</p>
+                <div className="flex flex-wrap gap-2">
+                  {availableLangs.map(l => (
+                    <button key={l.code} type="button" onClick={() => addLanguage(l.code)}
+                      className="text-[11px] font-bold px-2.5 py-1 rounded-full border border-dashed border-brand-border text-gray-500 hover:border-[#4B7399] hover:text-[#4B7399] flex items-center gap-1">
+                      <Plus size={12} /> {l.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <PublicProfilePreview verificationStatus={verification} />
+
+          {/* 2.3 Token refresh */}
+          <div className="bg-white rounded-2xl border border-brand-border shadow-sm p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="small-caps text-gray-400">Session & Tokens</p>
+                <p className="text-[11px] text-gray-300 mt-0.5">POST /accounts/refresh/</p>
+              </div>
+              <button type="button" onClick={() => { setShowRefresh(true); setRefreshDone(false); }}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-50 border border-brand-border text-[12px] font-bold text-forest hover:bg-[#f0f4ee]">
+                <RefreshCw size={14} /> Refresh session
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-[13px]">
+              <div className="bg-brand-50 rounded-xl border border-brand-border p-3">
+                <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Access token</p>
+                <p className="font-mono text-[11px] text-slate truncate">eyJhbG… · 15 min</p>
+              </div>
+              <div className="bg-brand-50 rounded-xl border border-brand-border p-3">
+                <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Refresh token</p>
+                <p className="font-mono text-[11px] text-slate truncate">eyJhbG… · 7 days</p>
               </div>
             </div>
+            <p className="text-[11px] text-gray-400 mt-3">
+              When access expires, the app exchanges the refresh token for a new pair. Old refresh tokens are blacklisted.
+            </p>
           </div>
 
           <div className="bg-white rounded-2xl border border-brand-border shadow-sm overflow-hidden">
@@ -261,8 +516,130 @@ export default function Profile() {
               </button>
             ))}
           </div>
+
+          <div className="bg-white rounded-2xl border border-brand-border shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-brand-border">
+              <p className="small-caps text-gray-400">Account Actions</p>
+            </div>
+            <button type="button" onClick={() => { setShowExport(true); setExportDone(false); }}
+              className="w-full px-6 py-4 flex items-center justify-between hover:bg-brand-50/50 transition-colors border-b border-brand-border">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-[#eef3f9] flex items-center justify-center text-[#4B7399]">
+                  <Download size={18} />
+                </div>
+                <div className="text-left">
+                  <p className="text-[14px] font-semibold text-slate">Export My Data</p>
+                  <p className="text-[12px] text-gray-400">GET /accounts/me/export-data/</p>
+                </div>
+              </div>
+              <ChevronRight size={16} className="text-gray-300" />
+            </button>
+            <button type="button" onClick={() => setShowDeactivate(true)} disabled={deactivated}
+              className="w-full px-6 py-4 flex items-center justify-between hover:bg-[#fdf3ec]/50 transition-colors disabled:opacity-50">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-[#fdf3ec] flex items-center justify-center text-terracotta">
+                  <UserX size={18} />
+                </div>
+                <div className="text-left">
+                  <p className="text-[14px] font-semibold text-terracotta">Deactivate Account</p>
+                  <p className="text-[12px] text-gray-400">POST /accounts/me/deactivate/</p>
+                </div>
+              </div>
+              <ChevronRight size={16} className="text-gray-300" />
+            </button>
+          </div>
         </div>
       </div>
+
+      <Modal open={showExport} onClose={() => setShowExport(false)} title="Export My Data" maxWidth="max-w-lg">
+        <p className="text-[13px] text-gray-500 mb-4">
+          GDPR data export from <code className="text-[12px] bg-brand-50 px-1.5 py-0.5 rounded">GET /accounts/me/export-data/</code>
+        </p>
+        <pre className="bg-brand-50 border border-brand-border rounded-xl p-4 text-[11px] font-mono text-slate overflow-auto max-h-64 mb-4">
+          {JSON.stringify(MOCK_PRACTITIONER_EXPORT_DATA, null, 2)}
+        </pre>
+        {exportDone && (
+          <p className="text-[13px] text-forest font-medium mb-4 flex items-center gap-2">
+            <CheckCircle2 size={16} /> Download started
+          </p>
+        )}
+        <div className="flex gap-3">
+          <button type="button" onClick={() => setShowExport(false)}
+            className="flex-1 py-2.5 rounded-xl border border-brand-border text-[13px] font-bold hover:bg-brand-50">
+            Close
+          </button>
+          <button type="button" onClick={handleExport}
+            className="flex-1 py-2.5 rounded-xl bg-forest text-white text-[13px] font-bold hover:bg-[#3d5636] flex items-center justify-center gap-2">
+            <Download size={14} /> Download JSON
+          </button>
+        </div>
+      </Modal>
+
+      <Modal open={showDeactivate} onClose={() => setShowDeactivate(false)} title="Deactivate Account">
+        <div className="flex items-start gap-3 mb-4">
+          <AlertTriangle size={20} className="text-terracotta shrink-0 mt-0.5" />
+          <p className="text-[13px] text-gray-600 leading-relaxed">
+            This will soft-deactivate your account via <code className="text-[12px] bg-brand-50 px-1 py-0.5 rounded">POST /accounts/me/deactivate/</code>.
+            You will be signed out and unable to log in until an admin reactivates your account.
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <button type="button" onClick={() => setShowDeactivate(false)}
+            className="flex-1 py-2.5 rounded-xl border border-brand-border text-[13px] font-bold hover:bg-brand-50">
+            Cancel
+          </button>
+          <button type="button" onClick={handleDeactivate}
+            className="flex-1 py-2.5 rounded-xl bg-terracotta text-white text-[13px] font-bold hover:bg-terracotta/90">
+            Confirm Deactivate
+          </button>
+        </div>
+      </Modal>
+
+      <Modal open={showRefresh} onClose={() => setShowRefresh(false)} title="Refresh Session" maxWidth="max-w-md">
+        <p className="text-[13px] text-gray-500 mb-4">
+          Exchange refresh token via <code className="text-[12px] bg-brand-50 px-1.5 py-0.5 rounded">POST /accounts/refresh/</code>
+        </p>
+        <pre className="bg-brand-50 border border-brand-border rounded-xl p-3 text-[11px] font-mono text-slate mb-4">
+{`{
+  "refresh": "eyJhbGciOiJIUzI1NiIs..."
+}`}
+        </pre>
+        {refreshDone ? (
+          <div className="bg-[#f0f4ee] border border-forest/20 rounded-xl p-3 mb-4 text-[12px] text-forest font-medium flex items-center gap-2">
+            <CheckCircle2 size={16} /> New access + refresh tokens issued (200 OK)
+          </div>
+        ) : null}
+        <div className="flex gap-3">
+          <button type="button" onClick={() => setShowRefresh(false)}
+            className="flex-1 py-2.5 rounded-xl border border-brand-border text-[13px] font-bold hover:bg-brand-50">
+            Close
+          </button>
+          <button type="button" onClick={() => setRefreshDone(true)}
+            className="flex-1 py-2.5 rounded-xl bg-forest text-white text-[13px] font-bold flex items-center justify-center gap-2">
+            <RefreshCw size={14} /> Refresh
+          </button>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+function Field({ label, value, editing, onChange, type = 'text' }: {
+  label: string;
+  value: string;
+  editing: boolean;
+  onChange: (v: string) => void;
+  type?: string;
+}) {
+  return (
+    <div>
+      <p className="small-caps text-[8px] text-gray-400 mb-1">{label}</p>
+      {editing ? (
+        <input type={type} value={value} onChange={e => onChange(e.target.value)}
+          className="w-full bg-brand-50 border border-brand-border rounded-xl py-2 px-3 text-[13px] outline-none focus:border-forest/30" />
+      ) : (
+        <p className="text-[14px] font-semibold text-slate">{value || '—'}</p>
+      )}
     </div>
   );
 }

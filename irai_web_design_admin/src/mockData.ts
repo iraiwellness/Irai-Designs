@@ -1,4 +1,4 @@
-import { Patient, Appointment, Practitioner, AISessionNote, PractitionerGroupSession, AttentionNotification, PersonalProfileFields, PractitionerProfileFields } from './types';
+import { Patient, Appointment, Practitioner, AISessionNote, PractitionerGroupSession, AttentionNotification, PersonalProfileFields, PractitionerProfileFields, LookupSpecialization, LookupLanguage, PublicService, PublicLocation, PublicReview } from './types';
 
 export const MOCK_PRACTITIONER: Practitioner = {
   id: 'p1',
@@ -22,6 +22,8 @@ export const MOCK_ADMIN_PERSONAL_PROFILE: PersonalProfileFields = {
   emergencyName: 'Support Desk',
   emergencyPhone: '+91 90000 12346',
   emergencyRelation: 'colleague',
+  onboardingCompleted: true,
+  onboardingStep: 5,
 };
 
 export const MOCK_PERSONAL_PROFILE: PersonalProfileFields = {
@@ -32,6 +34,8 @@ export const MOCK_PERSONAL_PROFILE: PersonalProfileFields = {
   emergencyName: 'John Mitchell',
   emergencyPhone: '+91 98765 43211',
   emergencyRelation: 'spouse',
+  onboardingCompleted: true,
+  onboardingStep: 4,
 };
 
 export const MOCK_PROFESSIONAL_PROFILE: PractitionerProfileFields = {
@@ -46,17 +50,100 @@ export const MOCK_PROFESSIONAL_PROFILE: PractitionerProfileFields = {
   maxSessionsPerDay: 8,
   maxSessionsPerWeek: 40,
   bookingBufferDays: 1,
+  videoIntroUrl: 'https://example.com/sarah-intro.mp4',
+  verifiedAt: '2024-02-01T10:00:00.000000Z',
+  metadata: { specialty: 'clinical-nutrition' },
+};
+
+/** GET /accounts/specializations/ — lookup catalog for 3.4 */
+export const LOOKUP_SPECIALIZATIONS: LookupSpecialization[] = [
+  { id: 1, name: 'Hatha Yoga', slug: 'hatha-yoga' },
+  { id: 2, name: 'Vinyasa Flow', slug: 'vinyasa-flow' },
+  { id: 3, name: 'Clinical Nutrition', slug: 'nutrition' },
+  { id: 4, name: 'Ashtanga', slug: 'ashtanga' },
+  { id: 5, name: 'Therapeutic Yoga', slug: 'therapeutic-yoga' },
+];
+
+/** GET /accounts/languages/ — lookup catalog for 3.5 */
+export const LOOKUP_LANGUAGES: LookupLanguage[] = [
+  { code: 'en', name: 'English' },
+  { code: 'hi', name: 'Hindi' },
+  { code: 'ta', name: 'Tamil' },
+  { code: 'te', name: 'Telugu' },
+  { code: 'ml', name: 'Malayalam' },
+  { code: 'kn', name: 'Kannada' },
+];
+
+export const MOCK_PRACTITIONER_EXPORT_DATA = {
+  id: 1,
+  email: 'dr.sarah@irai.com',
+  first_name: 'Sarah',
+  last_name: 'Mitchell',
+  role: 'practitioner',
+  phone: '+91 98765 43210',
+  timezone: 'Asia/Kolkata',
+  onboarding_completed: true,
+  onboarding_step: 4,
+  patient_profile: null,
+  practitioner_profile: {
+    title: 'Clinical Nutritionist',
+    specializations: ['hatha-yoga', 'nutrition'],
+    languages: ['en', 'hi'],
+    status: 'verified',
+    consultation_fee: '500.00',
+  },
+  date_joined: '2023-06-15T00:00:00.000000Z',
+};
+
+/** GET /accounts/practitioners/<id>/ — public detail extras (3.2) */
+export const MOCK_PUBLIC_SERVICES: PublicService[] = [
+  { id: 1, serviceType: 3, name: '1-on-1 Nutrition Consultation', durationMinutes: 45, price: '500.00', description: 'Personalized nutrition assessment and meal planning.', isActive: true },
+  { id: 2, serviceType: 3, name: 'Follow-up Session', durationMinutes: 30, price: '350.00', description: 'Progress review and plan adjustments.', isActive: true },
+];
+
+export const MOCK_PUBLIC_LOCATIONS: PublicLocation[] = [
+  { id: 1, name: 'IRAI Virtual Clinic', address: 'Online — video sessions', city: 'Remote', isActive: true },
+  { id: 2, name: 'Mumbai Wellness Centre', address: '42 Health Park, Bandra West', city: 'Mumbai', isActive: true },
+];
+
+export const MOCK_PUBLIC_REVIEWS: PublicReview[] = [
+  { id: 1, session: 42, rating: 5, comment: 'Excellent session! Very thorough and personalized advice.', createdAt: '2026-05-10T14:00:00.000000Z' },
+  { id: 2, session: 38, rating: 5, comment: 'Helped me understand my PCOS diet plan clearly.', createdAt: '2026-04-26T10:30:00.000000Z' },
+  { id: 3, session: 31, rating: 4, comment: 'Great follow-up, would recommend.', createdAt: '2026-04-12T09:00:00.000000Z' },
+];
+
+export const MOCK_SIGNUP_RESPONSE = {
+  user: {
+    id: 99,
+    email: 'new.practitioner@example.com',
+    first_name: 'New',
+    last_name: 'Practitioner',
+    role: 'practitioner',
+    onboarding_completed: false,
+    onboarding_step: 0,
+    practitioner_profile: { status: 'pending', verified_at: null },
+  },
+  access: 'eyJhbGciOiJIUzI1NiIs...',
+  refresh: 'eyJhbGciOiJIUzI1NiIs...',
 };
 
 export const MOCK_PATIENTS: Patient[] = [
   {
     id: 'pt1',
+    relationshipId: 1,
+    patientUserId: 101,
+    practitionerId: 1,
+    serviceTypeId: 3,
     name: 'Emma Watson',
     avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop',
     condition: 'PCOS Management',
     serviceType: 'Nutrition Consultation',
     relationshipStatus: 'active',
     healthAccessGranted: true,
+    requestedAt: '2024-01-10T09:00:00.000000Z',
+    acceptedAt: '2024-01-10T14:30:00.000000Z',
+    rejectedAt: null,
+    endedAt: null,
     lastConsultation: '2024-05-10',
     nextAppointment: '2024-05-15',
     email: 'emma.w@example.com',
@@ -64,12 +151,20 @@ export const MOCK_PATIENTS: Patient[] = [
   },
   {
     id: 'pt2',
+    relationshipId: 2,
+    patientUserId: 102,
+    practitionerId: 1,
+    serviceTypeId: 3,
     name: 'James Rodriguez',
     avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop',
     condition: 'Weight Loss',
     serviceType: 'Nutrition Consultation',
     relationshipStatus: 'active',
     healthAccessGranted: false,
+    requestedAt: '2024-02-05T11:00:00.000000Z',
+    acceptedAt: '2024-02-06T09:15:00.000000Z',
+    rejectedAt: null,
+    endedAt: null,
     lastConsultation: '2024-05-08',
     nextAppointment: '2024-05-20',
     email: 'james.r@example.com',
@@ -77,12 +172,20 @@ export const MOCK_PATIENTS: Patient[] = [
   },
   {
     id: 'pt3',
+    relationshipId: 3,
+    patientUserId: 103,
+    practitionerId: 1,
+    serviceTypeId: 3,
     name: 'Sophia Chen',
     avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop',
     condition: 'Ketogenic Diet',
     serviceType: 'Nutrition Consultation',
     relationshipStatus: 'active',
     healthAccessGranted: true,
+    requestedAt: '2024-03-01T08:00:00.000000Z',
+    acceptedAt: '2024-03-01T16:00:00.000000Z',
+    rejectedAt: null,
+    endedAt: null,
     lastConsultation: '2024-05-01',
     nextAppointment: '2024-05-18',
     email: 'sophia.c@example.com',
@@ -90,13 +193,20 @@ export const MOCK_PATIENTS: Patient[] = [
   },
   {
     id: 'rel-1',
+    relationshipId: 4,
+    patientUserId: 104,
+    practitionerId: 1,
+    serviceTypeId: 3,
     name: 'Priya Sharma',
     avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop',
     condition: 'General wellness',
     serviceType: 'Nutrition Consultation',
     relationshipStatus: 'requested',
     healthAccessGranted: false,
-    requestedAt: '2 hours ago',
+    requestedAt: '2026-05-16T12:00:00.000000Z',
+    acceptedAt: null,
+    rejectedAt: null,
+    endedAt: null,
     lastConsultation: '',
     nextAppointment: '',
     email: 'priya@example.com',
@@ -104,13 +214,20 @@ export const MOCK_PATIENTS: Patient[] = [
   },
   {
     id: 'rel-2',
+    relationshipId: 5,
+    patientUserId: 105,
+    practitionerId: 1,
+    serviceTypeId: 2,
     name: 'Arjun Mehta',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop',
     condition: 'Back pain recovery',
     serviceType: 'Yoga Therapy',
     relationshipStatus: 'requested',
     healthAccessGranted: false,
-    requestedAt: 'Yesterday',
+    requestedAt: '2026-05-15T10:30:00.000000Z',
+    acceptedAt: null,
+    rejectedAt: null,
+    endedAt: null,
     lastConsultation: '',
     nextAppointment: '',
     email: 'arjun@example.com',
@@ -118,12 +235,20 @@ export const MOCK_PATIENTS: Patient[] = [
   },
   {
     id: 'pt4',
+    relationshipId: 6,
+    patientUserId: 106,
+    practitionerId: 1,
+    serviceTypeId: 3,
     name: 'Lakshmi Iyer',
     avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&h=150&fit=crop',
     condition: 'Diabetes management',
     serviceType: 'Nutrition Consultation',
     relationshipStatus: 'ended',
     healthAccessGranted: false,
+    requestedAt: '2023-10-01T09:00:00.000000Z',
+    acceptedAt: '2023-10-02T11:00:00.000000Z',
+    rejectedAt: null,
+    endedAt: '2024-01-20T16:00:00.000000Z',
     lastConsultation: '2024-01-15',
     nextAppointment: '',
     email: 'lakshmi@example.com',

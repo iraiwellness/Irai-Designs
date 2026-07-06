@@ -101,7 +101,7 @@ export default function Login() {
               {role === 'admin' ? 'Admin' : 'Practitioner'}
             </span>
             <h2 className="serif text-3xl text-slate">Welcome back</h2>
-            <p className="text-[13px] text-gray-400 mt-1">Enter your credentials to sign in.</p>
+            <p className="text-[13px] text-gray-400 mt-1">POST /accounts/login/ · Enter your credentials.</p>
           </div>
 
           <AnimatePresence mode="wait">
@@ -175,7 +175,7 @@ export default function Login() {
                   type="submit"
                   disabled={loading}
                   className={cn(
-                    'w-full py-4 rounded-xl text-white font-bold text-[13px] flex items-center justify-center gap-2 transition-all disabled:opacity-50 mt-2',
+                    'w-full py-4 rounded-xl text-white font-bold text-[13px] flex items-center justify-center gap-2 transition-all disabled:opacity-50',
                     cfg.buttonBg,
                   )}
                 >
@@ -185,6 +185,35 @@ export default function Login() {
                     'Sign In'
                   )}
                 </button>
+
+                <div className="relative py-2">
+                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-brand-border" /></div>
+                  <p className="relative text-center text-[10px] uppercase tracking-wider text-gray-400 bg-cream px-3 mx-auto w-fit">or continue with</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <button type="button"
+                    className="py-3 rounded-xl border border-brand-border bg-white text-[12px] font-bold text-slate hover:bg-brand-50 flex items-center justify-center gap-2">
+                    <span className="text-base">G</span> Google
+                  </button>
+                  <button type="button"
+                    className="py-3 rounded-xl border border-brand-border bg-white text-[12px] font-bold text-slate hover:bg-brand-50 flex items-center justify-center gap-2">
+                    Apple
+                  </button>
+                </div>
+                <p className="text-[10px] text-center text-gray-400">
+                  POST /accounts/social/google/ · POST /accounts/social/apple/
+                </p>
+
+                {role === 'practitioner' && (
+                  <p className="text-center text-[12px] text-gray-500 pt-1">
+                    New practitioner?{' '}
+                    <button type="button" onClick={() => navigate('/signup?role=practitioner')}
+                      className="text-forest font-bold hover:underline">
+                      Create account
+                    </button>
+                  </p>
+                )}
 
                 <p className="text-center text-[9px] text-gray-300 font-medium pt-1">
                   Prototype mode — any credentials accepted

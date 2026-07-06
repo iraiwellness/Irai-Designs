@@ -7,6 +7,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import type { Patient, RelationshipStatus } from '../../types';
 import { MOCK_AI_NOTES } from '../../mockData';
+import RelationshipDetail from './RelationshipDetail';
 import { cn } from '../../lib/utils';
 
 const RELATIONSHIP_STYLE: Record<RelationshipStatus, string> = {
@@ -30,9 +31,10 @@ const MANUAL_NOTES = [
 interface PatientPreviewProps {
   patient: Patient;
   compact?: boolean;
+  hideRelationship?: boolean;
 }
 
-export default function PatientPreview({ patient, compact = false }: PatientPreviewProps) {
+export default function PatientPreview({ patient, compact = false, hideRelationship = false }: PatientPreviewProps) {
   const navigate = useNavigate();
   const aiNotes = MOCK_AI_NOTES.filter(n => n.patientId === patient.id);
   const [activeTab, setActiveTab] = useState<'overview' | 'ai-notes'>('overview');
@@ -102,6 +104,7 @@ export default function PatientPreview({ patient, compact = false }: PatientPrev
       <AnimatePresence mode="wait">
         {activeTab === 'overview' && (
           <motion.div key="overview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
+            {!hideRelationship && <RelationshipDetail patient={patient} />}
             <div className="grid grid-cols-2 gap-3">
               {patient.nextAppointment && (
                 <div className="bg-brand-50 rounded-xl border border-brand-border p-4 flex items-center gap-3">

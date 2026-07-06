@@ -1,10 +1,17 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, X, Users, MessageSquare, Calendar, ChevronRight, CheckCircle2, XCircle } from 'lucide-react';
+import { Search, X, Users, MessageSquare, Calendar, ChevronRight, CheckCircle2, XCircle, UserMinus } from 'lucide-react';
 import { MOCK_PATIENTS } from '../../mockData';
 import { cn } from '../../lib/utils';
+import Modal from '../../components/ui/Modal';
 import PatientPreview from '../../components/practitioner/PatientPreview';
+import RelationshipDetail from '../../components/practitioner/RelationshipDetail';
 import type { Patient, RelationshipStatus } from '../../types';
+
+function formatTs(iso?: string | null) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
 
 const STATUS_TABS: { id: 'all' | RelationshipStatus | 'ended'; label: string }[] = [
   { id: 'all', label: 'All' },
@@ -33,6 +40,7 @@ export default function Clients() {
   const [patients, setPatients] = useState(MOCK_PATIENTS);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [endingId, setEndingId] = useState<string | null>(null);
 
   const tabParam = params.get('tab') ?? 'all';
   const activeTab = STATUS_TABS.some(t => t.id === tabParam) ? tabParam : 'all';
@@ -81,8 +89,9 @@ export default function Clients() {
   };
 
   const acceptRequest = (id: string) => {
+    const now = new Date().toISOString();
     setPatients(prev => prev.map(p =>
-      p.id === id ? { ...p, relationshipStatus: 'active' as const } : p,
+      p.id === id ? { ...p, relationshipStatus: 'active' as const, acceptedAt: now, rejectedAt: null, rejectionReason: undefined } : p,
     ));
     setRejectingId(null);
     setRejectReason('');
@@ -90,18 +99,33 @@ export default function Clients() {
 
   const rejectRequest = (id: string) => {
     if (!rejectReason.trim()) return;
+    const now = new Date().toISOString();
     setPatients(prev => prev.map(p =>
-      p.id === id ? { ...p, relationshipStatus: 'rejected' as const, rejectionReason: rejectReason.trim() } : p,
+      p.id === id ? {
+        ...p,
+        relationshipStatus: 'rejected' as const,
+        rejectionReason: rejectReason.trim(),
+        rejectedAt: now,
+        acceptedAt: null,
+      } : p,
     ));
     setRejectingId(null);
     setRejectReason('');
+  };
+
+  const endRelationship = (id: string) => {
+    const now = new Date().toISOString();
+    setPatients(prev => prev.map(p =>
+      p.id === id ? { ...p, relationshipStatus: 'ended' as const, endedAt: now } : p,
+    ));
+    setEndingId(null);
   };
 
   return (
     <div className="p-6 lg:p-8 h-full flex flex-col">
       <div className="flex items-start justify-between mb-6">
         <div>
-          <p className="small-caps text-gray-400 mb-1">Practitioner</p>
+          <p className="small-caps text-gray-400 mb-1">Practitioner · GET /patient-relationships/list/</p>
           <h1 className="serif text-4xl text-slate leading-tight">My Clients</h1>
           <p className="text-[13px] text-gray-400 mt-1">
             {activeCount} active · {pendingCount} pending request{pendingCount !== 1 ? 's' : ''}
@@ -215,7 +239,11 @@ export default function Clients() {
           {selectedPatient ? (
             <>
               <div className="px-5 py-4 border-b border-brand-border flex items-center justify-between">
-                <p className="small-caps text-[8px] text-gray-400">Client Preview</p>
+                <p className="small-caps text-[8px] text-gray-400">
+                  {selectedPatient.relationshipStatus === 'requested'
+                    ? 'PATCH /patient-relationships/<id>/'
+                    : 'GET /patient-relationships/<id>/'}
+                </p>
                 {selectedPatient.relationshipStatus === 'active' && (
                   <button
                     type="button"
@@ -234,10 +262,11 @@ export default function Clients() {
                     <div>
                       <h2 className="serif text-2xl text-slate">{selectedPatient.name}</h2>
                       <p className="text-[13px] text-gray-400 mt-1">{selectedPatient.serviceType}</p>
-                      <p className="text-[12px] text-gray-400 mt-2">Requested {selectedPatient.requestedAt}</p>
+                      <p className="text-[12px] text-gray-400 mt-2">Requested {formatTs(selectedPatient.requestedAt)}</p>
                     </div>
                   </div>
-                  <div className="bg-brand-50 rounded-xl border border-brand-border p-4 mb-5 space-y-2">
+                  <RelationshipDetail patient={selectedPatient} compact />
+                  <div className="bg-brand-50 rounded-xl border border-brand-border p-4 mb-5 space-y-2 mt-4">
                     <p className="small-caps text-[8px] text-gray-400">Contact</p>
                     <div className="flex justify-between text-[13px]">
                       <span className="text-gray-400">Email</span>
@@ -286,14 +315,20 @@ export default function Clients() {
                     <PatientPreview patient={selectedPatient} compact />
                   </div>
                   {selectedPatient.relationshipStatus === 'active' && (
-                    <div className="p-4 border-t border-brand-border flex gap-3">
-                      <button type="button" onClick={() => navigate('/practitioner/chats')}
-                        className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-forest text-white rounded-xl text-[13px] font-bold hover:bg-[#3d5636] transition-colors">
-                        <MessageSquare size={15} /> Message
-                      </button>
-                      <button type="button" onClick={() => navigate('/practitioner/schedule')}
-                        className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-white border border-brand-border text-slate rounded-xl text-[13px] font-bold hover:bg-brand-50 transition-colors">
-                        <Calendar size={15} /> Schedule
+                    <div className="p-4 border-t border-brand-border space-y-2">
+                      <div className="flex gap-3">
+                        <button type="button" onClick={() => navigate('/practitioner/chats')}
+                          className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-forest text-white rounded-xl text-[13px] font-bold hover:bg-[#3d5636] transition-colors">
+                          <MessageSquare size={15} /> Message
+                        </button>
+                        <button type="button" onClick={() => navigate('/practitioner/schedule')}
+                          className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-white border border-brand-border text-slate rounded-xl text-[13px] font-bold hover:bg-brand-50 transition-colors">
+                          <Calendar size={15} /> Schedule
+                        </button>
+                      </div>
+                      <button type="button" onClick={() => setEndingId(selectedPatient.id)}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 bg-white border border-gray-200 text-gray-500 rounded-xl text-[12px] font-bold hover:bg-gray-50 transition-colors">
+                        <UserMinus size={14} /> End relationship · PATCH status ended
                       </button>
                     </div>
                   )}
@@ -307,6 +342,22 @@ export default function Clients() {
           )}
         </div>
       </div>
+
+      <Modal open={!!endingId} onClose={() => setEndingId(null)} title="End Relationship">
+        <p className="text-[13px] text-gray-500 mb-4">
+          End this patient relationship via <code className="text-[12px] bg-brand-50 px-1.5 py-0.5 rounded">PATCH /patient-relationships/&lt;id&gt;/</code> with <code className="text-[12px] bg-brand-50 px-1 py-0.5 rounded">status: ended</code>.
+        </p>
+        <div className="flex gap-3">
+          <button type="button" onClick={() => setEndingId(null)}
+            className="flex-1 py-2.5 rounded-xl border border-brand-border text-[13px] font-bold hover:bg-brand-50">
+            Cancel
+          </button>
+          <button type="button" onClick={() => endingId && endRelationship(endingId)}
+            className="flex-1 py-2.5 rounded-xl bg-gray-600 text-white text-[13px] font-bold hover:bg-gray-700">
+            End Relationship
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }

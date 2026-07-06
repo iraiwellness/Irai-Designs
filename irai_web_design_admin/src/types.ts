@@ -19,12 +19,31 @@ export interface Patient {
   serviceType: string;
   relationshipStatus: RelationshipStatus;
   healthAccessGranted: boolean;
-  requestedAt?: string;
+  /** API: patient-relationships/<id> */
+  relationshipId: number;
+  patientUserId: number;
+  practitionerId: number;
+  serviceTypeId: number;
+  requestedAt?: string | null;
+  acceptedAt?: string | null;
+  rejectedAt?: string | null;
+  endedAt?: string | null;
   rejectionReason?: string;
   lastConsultation: string;
   nextAppointment: string;
   email: string;
   phone: string;
+}
+
+export interface LookupSpecialization {
+  id: number;
+  name: string;
+  slug: string;
+}
+
+export interface LookupLanguage {
+  code: string;
+  name: string;
 }
 
 export interface Appointment {
@@ -65,6 +84,9 @@ export interface PractitionerProfileFields {
   maxSessionsPerDay: number;
   maxSessionsPerWeek: number;
   bookingBufferDays: number;
+  videoIntroUrl: string;
+  verifiedAt?: string | null;
+  metadata: Record<string, string | number | boolean>;
 }
 
 export interface PersonalProfileFields {
@@ -75,6 +97,8 @@ export interface PersonalProfileFields {
   emergencyName: string;
   emergencyPhone: string;
   emergencyRelation: string;
+  onboardingCompleted: boolean;
+  onboardingStep: number;
 }
 
 export interface AttentionNotification {
@@ -115,4 +139,30 @@ export interface PractitionerGroupSession {
   enrolled: number;
   capacity: number;
   level: 'Beginner' | 'Intermediate' | 'Advanced';
+}
+
+export interface PublicService {
+  id: number;
+  serviceType: number;
+  name: string;
+  durationMinutes: number;
+  price: string;
+  description: string;
+  isActive: boolean;
+}
+
+export interface PublicLocation {
+  id: number;
+  name: string;
+  address: string;
+  city: string;
+  isActive: boolean;
+}
+
+export interface PublicReview {
+  id: number;
+  session: number;
+  rating: number;
+  comment: string;
+  createdAt: string;
 }

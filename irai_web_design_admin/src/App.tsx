@@ -4,6 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 import RolePicker from './pages/RolePicker';
 import Login from './pages/Login';
+import Signup from './pages/Signup';
 
 import PractitionerLayout from './components/PractitionerLayout';
 import PractitionerHome from './pages/practitioner/Home';
@@ -32,6 +33,7 @@ export default function App() {
         <Routes>
           <Route path="/"      element={<RolePicker />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
 
           <Route path="/practitioner" element={<ProtectedRoute role="practitioner"><PractitionerLayout /></ProtectedRoute>}>
             <Route index              element={<PractitionerHome />} />

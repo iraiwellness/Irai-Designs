@@ -108,6 +108,15 @@ export default function RolePicker() {
               </motion.button>
             ))}
           </div>
+
+          <p className="text-center text-[12px] text-gray-400 mt-6">
+            New practitioner?{' '}
+            <button type="button" onClick={() => navigate('/signup?role=practitioner')}
+              className="text-forest font-bold hover:underline">
+              Create account
+            </button>
+            {' '}· POST /accounts/signup/
+          </p>
         </motion.div>
       </div>
     </div>

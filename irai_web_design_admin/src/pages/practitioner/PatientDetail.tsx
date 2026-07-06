@@ -1,12 +1,21 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ChevronRight, FileText, CheckCircle2 } from 'lucide-react';
+import { ChevronRight, FileText, CheckCircle2, UserMinus } from 'lucide-react';
+import { useState } from 'react';
 import { MOCK_PATIENTS } from '../../mockData';
 import PatientPreview from '../../components/practitioner/PatientPreview';
+import RelationshipDetail from '../../components/practitioner/RelationshipDetail';
+import Modal from '../../components/ui/Modal';
 
 export default function PatientDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const patient = MOCK_PATIENTS.find(p => p.id === id) ?? MOCK_PATIENTS[0];
+  const [patient, setPatient] = useState(() => MOCK_PATIENTS.find(p => p.id === id) ?? MOCK_PATIENTS[0]);
+  const [showEnd, setShowEnd] = useState(false);
+
+  const endRelationship = () => {
+    setPatient(p => ({ ...p, relationshipStatus: 'ended', endedAt: new Date().toISOString() }));
+    setShowEnd(false);
+  };
 
   return (
     <div className="p-6 lg:p-8">
@@ -21,8 +30,11 @@ export default function PatientDetail() {
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Main content */}
-        <div className="xl:col-span-2 bg-white rounded-2xl border border-brand-border shadow-sm">
-          <PatientPreview patient={patient} />
+        <div className="xl:col-span-2 space-y-4">
+          <RelationshipDetail patient={patient} />
+          <div className="bg-white rounded-2xl border border-brand-border shadow-sm">
+            <PatientPreview patient={patient} hideRelationship />
+          </div>
         </div>
 
         {/* Sidebar */}
@@ -64,6 +76,12 @@ export default function PatientDetail() {
               >
                 Book Appointment
               </button>
+              {patient.relationshipStatus === 'active' && (
+                <button type="button" onClick={() => setShowEnd(true)}
+                  className="w-full py-2.5 bg-white border border-gray-200 text-gray-500 rounded-xl text-[12px] font-bold hover:bg-gray-50 flex items-center justify-center gap-2">
+                  <UserMinus size={14} /> End Relationship
+                </button>
+              )}
               <button className="w-full py-2.5 bg-white border border-brand-border text-slate rounded-xl text-[13px] font-bold hover:bg-brand-50 transition-colors flex items-center justify-center gap-2">
                 <FileText size={15} /> View Care Plan
               </button>
@@ -96,6 +114,22 @@ export default function PatientDetail() {
           </div>
         </div>
       </div>
+
+      <Modal open={showEnd} onClose={() => setShowEnd(false)} title="End Relationship">
+        <p className="text-[13px] text-gray-500 mb-4">
+          End relationship #{patient.relationshipId} with {patient.name}?
+        </p>
+        <div className="flex gap-3">
+          <button type="button" onClick={() => setShowEnd(false)}
+            className="flex-1 py-2.5 rounded-xl border border-brand-border text-[13px] font-bold hover:bg-brand-50">
+            Cancel
+          </button>
+          <button type="button" onClick={endRelationship}
+            className="flex-1 py-2.5 rounded-xl bg-gray-600 text-white text-[13px] font-bold">
+            Confirm
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }
