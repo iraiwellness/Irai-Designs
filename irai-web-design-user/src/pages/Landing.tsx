@@ -35,19 +35,19 @@ export default function Landing() {
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center p-8 lg:p-16">
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="max-w-md w-full flex flex-col items-center lg:items-start text-center lg:text-left">
-          <BrandLogo size="lg" variant="on-light" className="mb-6 lg:!mx-0" />
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="max-w-md w-full flex flex-col items-stretch text-center lg:text-left lg:items-start">
+          <BrandLogo size="lg" variant="on-light" className="mb-6 self-center lg:self-start" />
           <h2 className="serif text-4xl text-slate mb-3">Welcome to IRAI</h2>
           <p className="text-[14px] text-gray-400 mb-8 leading-relaxed">
             Your member portal for booking sessions, tracking progress, and managing your wellness journey.
           </p>
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col sm:flex-row gap-3 w-full">
             <button type="button" onClick={() => navigate('/signup')}
-              className="flex-1 py-3.5 rounded-2xl bg-forest text-white font-bold text-[14px] flex items-center justify-center gap-2 hover:bg-[#3d5636] transition-colors">
+              className="w-full sm:flex-1 py-3.5 px-6 rounded-2xl bg-forest text-white font-bold text-[14px] inline-flex items-center justify-center gap-2 whitespace-nowrap hover:bg-[#3d5636] transition-colors">
               Get Started <ArrowRight size={16} />
             </button>
             <button type="button" onClick={() => navigate('/login')}
-              className="flex-1 py-3.5 rounded-2xl border border-brand-border text-slate font-bold text-[14px] hover:bg-brand-50 transition-colors">
+              className="w-full sm:flex-1 py-3.5 px-6 rounded-2xl border border-brand-border text-slate font-bold text-[14px] inline-flex items-center justify-center whitespace-nowrap hover:bg-brand-50 transition-colors">
               Sign In
             </button>
           </div>
