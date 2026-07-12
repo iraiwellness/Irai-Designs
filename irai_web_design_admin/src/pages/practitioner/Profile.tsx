@@ -2,18 +2,23 @@ import { useState } from 'react';
 import {
   LogOut, Shield, CreditCard, Bell, ChevronRight, Edit3, Star, Users,
   CheckCircle2, Clock, AlertTriangle, ShieldAlert, Upload,
-  Download, UserX, Plus, X, Video, RefreshCw,
+  Download, UserX, Plus, X, Video,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Modal from '../../components/ui/Modal';
-import PublicProfilePreview from '../../components/practitioner/PublicProfilePreview';
 import {
   MOCK_PRACTITIONER, MOCK_PERSONAL_PROFILE, MOCK_PROFESSIONAL_PROFILE,
   LOOKUP_SPECIALIZATIONS, LOOKUP_LANGUAGES, MOCK_PRACTITIONER_EXPORT_DATA,
 } from '../../mockData';
 import { useAuth } from '../../context/AuthContext';
 import { cn } from '../../lib/utils';
-import type { VerificationStatus } from '../../types';
+
+type VerificationStatus = 'pending' | 'verified' | 'rejected' | 'suspended';
+type ProfilePractitioner = typeof MOCK_PRACTITIONER & {
+  verificationStatus?: VerificationStatus;
+  rejectionReason?: string;
+  totalSessions?: number | string;
+};
 
 const VERIFICATION_CONFIG: Record<Exclude<VerificationStatus, 'verified'>, {
   icon: typeof Clock;
@@ -62,7 +67,8 @@ function specName(slug: string) {
 export default function Profile() {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
-  const displayName = user?.name ?? MOCK_PRACTITIONER.name;
+  const practitioner = MOCK_PRACTITIONER as ProfilePractitioner;
+  const displayName = user?.name ?? practitioner.name;
   const [personal, setPersonal] = useState(MOCK_PERSONAL_PROFILE);
   const [professional, setProfessional] = useState(MOCK_PROFESSIONAL_PROFILE);
   const [editingSection, setEditingSection] = useState<'personal' | 'professional' | null>(null);
@@ -71,11 +77,9 @@ export default function Profile() {
   const [exportDone, setExportDone] = useState(false);
   const [deactivated, setDeactivated] = useState(false);
   const [newQualification, setNewQualification] = useState('');
-  const [showRefresh, setShowRefresh] = useState(false);
-  const [refreshDone, setRefreshDone] = useState(false);
 
   const handleLogout = () => { logout(); navigate('/', { replace: true }); };
-  const verification = MOCK_PRACTITIONER.verificationStatus;
+  const verification = practitioner.verificationStatus ?? 'verified';
 
   const handleExport = () => {
     const blob = new Blob([JSON.stringify(MOCK_PRACTITIONER_EXPORT_DATA, null, 2)], { type: 'application/json' });
@@ -148,8 +152,8 @@ export default function Profile() {
           })()}
           <div>
             <p className="text-[14px] font-bold text-slate">{VERIFICATION_CONFIG[verification].title}</p>
-            {MOCK_PRACTITIONER.rejectionReason && (
-              <p className="text-[13px] text-gray-500 mt-1">{MOCK_PRACTITIONER.rejectionReason}</p>
+            {practitioner.rejectionReason && (
+              <p className="text-[13px] text-gray-500 mt-1">{practitioner.rejectionReason}</p>
             )}
             {verification === 'pending' && (
               <p className="text-[13px] text-gray-500 mt-1">Complete your professional profile below. You won&apos;t appear in public listings until approved.</p>
@@ -167,7 +171,7 @@ export default function Profile() {
                 alt={displayName}
                 className="w-24 h-24 rounded-2xl border-4 border-white/20 object-cover mx-auto"
               />
-              <button type="button" title="PATCH /accounts/me/ — avatar upload"
+              <button type="button" title="Upload avatar"
                 className="absolute -bottom-1 -right-1 w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-md">
                 <Upload size={13} className="text-forest" />
               </button>
@@ -192,9 +196,9 @@ export default function Profile() {
           <div className="bg-white rounded-2xl border border-brand-border shadow-sm">
             <div className="grid grid-cols-3 divide-x divide-brand-border">
               {[
-                { icon: CheckCircle2, value: MOCK_PRACTITIONER.totalSessions, label: 'Sessions', color: 'text-forest' },
-                { icon: Star,         value: MOCK_PRACTITIONER.rating,       label: 'Rating',   color: 'text-amber-500' },
-                { icon: Users,        value: MOCK_PRACTITIONER.totalClients, label: 'Clients',  color: 'text-[#4B7399]' },
+                { icon: CheckCircle2, value: practitioner.totalSessions ?? '1.2k', label: 'Sessions', color: 'text-forest' },
+                { icon: Star,         value: practitioner.rating,                  label: 'Rating',   color: 'text-amber-500' },
+                { icon: Users,        value: practitioner.totalClients,            label: 'Clients',  color: 'text-[#4B7399]' },
               ].map(({ icon: Icon, value, label, color }) => (
                 <div key={label} className="flex flex-col items-center py-5 gap-1.5">
                   <Icon size={16} className={color} />
@@ -212,12 +216,11 @@ export default function Profile() {
         </div>
 
         <div className="xl:col-span-2 space-y-4">
-          {/* Personal — PATCH /accounts/me/ */}
+          {/* Personal */}
           <div className="bg-white rounded-2xl border border-brand-border shadow-sm p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="small-caps text-gray-400">Personal</p>
-                <p className="text-[11px] text-gray-300 mt-0.5">PATCH /accounts/me/</p>
               </div>
               <button type="button" onClick={() => setEditingSection(editingSection === 'personal' ? null : 'personal')}
                 className="text-[12px] font-bold text-forest hover:underline">
@@ -288,12 +291,11 @@ export default function Profile() {
             </div>
           </div>
 
-          {/* Professional — PATCH /accounts/practitioner/profile/ */}
+          {/* Professional */}
           <div className="bg-white rounded-2xl border border-brand-border shadow-sm p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="small-caps text-gray-400">Professional</p>
-                <p className="text-[11px] text-gray-300 mt-0.5">PATCH /accounts/practitioner/profile/</p>
               </div>
               <button type="button" onClick={() => setEditingSection(editingSection === 'professional' ? null : 'professional')}
                 className="text-[12px] font-bold text-forest hover:underline">
@@ -403,7 +405,6 @@ export default function Profile() {
           <div className="bg-white rounded-2xl border border-brand-border shadow-sm p-6">
             <div className="mb-4">
               <p className="small-caps text-gray-400">My Specializations</p>
-              <p className="text-[11px] text-gray-300 mt-0.5">GET · POST · DELETE /accounts/practitioner/specializations/</p>
             </div>
             <div className="flex flex-wrap gap-2 mb-4">
               {professional.specializations.map(slug => (
@@ -420,7 +421,7 @@ export default function Profile() {
             </div>
             {availableSpecs.length > 0 && (
               <div>
-                <p className="small-caps text-[8px] text-gray-400 mb-2">Add from catalog · GET /accounts/specializations/</p>
+                <p className="small-caps text-[8px] text-gray-400 mb-2">Add from catalog</p>
                 <div className="flex flex-wrap gap-2">
                   {availableSpecs.map(s => (
                     <button key={s.slug} type="button" onClick={() => addSpecialization(s.slug)}
@@ -437,7 +438,6 @@ export default function Profile() {
           <div className="bg-white rounded-2xl border border-brand-border shadow-sm p-6">
             <div className="mb-4">
               <p className="small-caps text-gray-400">My Languages</p>
-              <p className="text-[11px] text-gray-300 mt-0.5">GET · POST · DELETE /accounts/practitioner/languages/</p>
             </div>
             <div className="flex flex-wrap gap-2 mb-4">
               {professional.languages.map(code => (
@@ -451,7 +451,7 @@ export default function Profile() {
             </div>
             {availableLangs.length > 0 && (
               <div>
-                <p className="small-caps text-[8px] text-gray-400 mb-2">Add from catalog · GET /accounts/languages/</p>
+                <p className="small-caps text-[8px] text-gray-400 mb-2">Add from catalog</p>
                 <div className="flex flex-wrap gap-2">
                   {availableLangs.map(l => (
                     <button key={l.code} type="button" onClick={() => addLanguage(l.code)}
@@ -462,35 +462,6 @@ export default function Profile() {
                 </div>
               </div>
             )}
-          </div>
-
-          <PublicProfilePreview verificationStatus={verification} />
-
-          {/* 2.3 Token refresh */}
-          <div className="bg-white rounded-2xl border border-brand-border shadow-sm p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="small-caps text-gray-400">Session & Tokens</p>
-                <p className="text-[11px] text-gray-300 mt-0.5">POST /accounts/refresh/</p>
-              </div>
-              <button type="button" onClick={() => { setShowRefresh(true); setRefreshDone(false); }}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-50 border border-brand-border text-[12px] font-bold text-forest hover:bg-[#f0f4ee]">
-                <RefreshCw size={14} /> Refresh session
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-3 text-[13px]">
-              <div className="bg-brand-50 rounded-xl border border-brand-border p-3">
-                <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Access token</p>
-                <p className="font-mono text-[11px] text-slate truncate">eyJhbG… · 15 min</p>
-              </div>
-              <div className="bg-brand-50 rounded-xl border border-brand-border p-3">
-                <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Refresh token</p>
-                <p className="font-mono text-[11px] text-slate truncate">eyJhbG… · 7 days</p>
-              </div>
-            </div>
-            <p className="text-[11px] text-gray-400 mt-3">
-              When access expires, the app exchanges the refresh token for a new pair. Old refresh tokens are blacklisted.
-            </p>
           </div>
 
           <div className="bg-white rounded-2xl border border-brand-border shadow-sm overflow-hidden">
@@ -529,7 +500,7 @@ export default function Profile() {
                 </div>
                 <div className="text-left">
                   <p className="text-[14px] font-semibold text-slate">Export My Data</p>
-                  <p className="text-[12px] text-gray-400">GET /accounts/me/export-data/</p>
+                  <p className="text-[12px] text-gray-400">Download a copy of your data</p>
                 </div>
               </div>
               <ChevronRight size={16} className="text-gray-300" />
@@ -542,7 +513,7 @@ export default function Profile() {
                 </div>
                 <div className="text-left">
                   <p className="text-[14px] font-semibold text-terracotta">Deactivate Account</p>
-                  <p className="text-[12px] text-gray-400">POST /accounts/me/deactivate/</p>
+                  <p className="text-[12px] text-gray-400">Permanently deactivate your account</p>
                 </div>
               </div>
               <ChevronRight size={16} className="text-gray-300" />
@@ -553,7 +524,7 @@ export default function Profile() {
 
       <Modal open={showExport} onClose={() => setShowExport(false)} title="Export My Data" maxWidth="max-w-lg">
         <p className="text-[13px] text-gray-500 mb-4">
-          GDPR data export from <code className="text-[12px] bg-brand-50 px-1.5 py-0.5 rounded">GET /accounts/me/export-data/</code>
+          Download a copy of your personal and professional data in JSON format.
         </p>
         <pre className="bg-brand-50 border border-brand-border rounded-xl p-4 text-[11px] font-mono text-slate overflow-auto max-h-64 mb-4">
           {JSON.stringify(MOCK_PRACTITIONER_EXPORT_DATA, null, 2)}
@@ -579,8 +550,7 @@ export default function Profile() {
         <div className="flex items-start gap-3 mb-4">
           <AlertTriangle size={20} className="text-terracotta shrink-0 mt-0.5" />
           <p className="text-[13px] text-gray-600 leading-relaxed">
-            This will soft-deactivate your account via <code className="text-[12px] bg-brand-50 px-1 py-0.5 rounded">POST /accounts/me/deactivate/</code>.
-            You will be signed out and unable to log in until an admin reactivates your account.
+            This will soft-deactivate your account. You will be signed out and unable to log in until an admin reactivates your account.
           </p>
         </div>
         <div className="flex gap-3">
@@ -595,31 +565,6 @@ export default function Profile() {
         </div>
       </Modal>
 
-      <Modal open={showRefresh} onClose={() => setShowRefresh(false)} title="Refresh Session" maxWidth="max-w-md">
-        <p className="text-[13px] text-gray-500 mb-4">
-          Exchange refresh token via <code className="text-[12px] bg-brand-50 px-1.5 py-0.5 rounded">POST /accounts/refresh/</code>
-        </p>
-        <pre className="bg-brand-50 border border-brand-border rounded-xl p-3 text-[11px] font-mono text-slate mb-4">
-{`{
-  "refresh": "eyJhbGciOiJIUzI1NiIs..."
-}`}
-        </pre>
-        {refreshDone ? (
-          <div className="bg-[#f0f4ee] border border-forest/20 rounded-xl p-3 mb-4 text-[12px] text-forest font-medium flex items-center gap-2">
-            <CheckCircle2 size={16} /> New access + refresh tokens issued (200 OK)
-          </div>
-        ) : null}
-        <div className="flex gap-3">
-          <button type="button" onClick={() => setShowRefresh(false)}
-            className="flex-1 py-2.5 rounded-xl border border-brand-border text-[13px] font-bold hover:bg-brand-50">
-            Close
-          </button>
-          <button type="button" onClick={() => setRefreshDone(true)}
-            className="flex-1 py-2.5 rounded-xl bg-forest text-white text-[13px] font-bold flex items-center justify-center gap-2">
-            <RefreshCw size={14} /> Refresh
-          </button>
-        </div>
-      </Modal>
     </div>
   );
 }

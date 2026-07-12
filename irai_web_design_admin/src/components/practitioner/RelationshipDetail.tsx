@@ -13,7 +13,7 @@ export default function RelationshipDetail({ patient, compact = false }: { patie
   return (
     <div className={cn('bg-brand-50 rounded-xl border border-brand-border', compact ? 'p-3' : 'p-4')}>
       <div className="flex items-center justify-between mb-3">
-        <p className="small-caps text-[8px] text-gray-400">patient-relationships / {patient.relationshipId}</p>
+        <p className="small-caps text-[8px] text-gray-400">Relationship #{patient.relationshipId}</p>
         <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-white border border-brand-border text-slate capitalize">
           {patient.relationshipStatus}
         </span>

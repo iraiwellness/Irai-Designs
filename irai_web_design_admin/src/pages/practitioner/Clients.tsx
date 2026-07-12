@@ -60,7 +60,6 @@ export default function Clients() {
   const selectedPatient = patients.find(p => p.id === selectedId) ?? filtered[0];
 
   const pendingCount = patients.filter(p => p.relationshipStatus === 'requested').length;
-  const activeCount = patients.filter(p => p.relationshipStatus === 'active').length;
 
   useEffect(() => {
     if (filtered.length > 0 && !filtered.some(p => p.id === selectedId)) {
@@ -123,16 +122,6 @@ export default function Clients() {
 
   return (
     <div className="p-6 lg:p-8 h-full flex flex-col">
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <p className="small-caps text-gray-400 mb-1">Practitioner · GET /patient-relationships/list/</p>
-          <h1 className="serif text-4xl text-slate leading-tight">My Clients</h1>
-          <p className="text-[13px] text-gray-400 mt-1">
-            {activeCount} active · {pendingCount} pending request{pendingCount !== 1 ? 's' : ''}
-          </p>
-        </div>
-      </div>
-
       {pendingCount > 0 && activeTab !== 'requested' && (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center justify-between gap-3 mb-5">
           <p className="text-[13px] font-medium text-amber-700">
@@ -241,8 +230,8 @@ export default function Clients() {
               <div className="px-5 py-4 border-b border-brand-border flex items-center justify-between">
                 <p className="small-caps text-[8px] text-gray-400">
                   {selectedPatient.relationshipStatus === 'requested'
-                    ? 'PATCH /patient-relationships/<id>/'
-                    : 'GET /patient-relationships/<id>/'}
+                    ? 'Client request'
+                    : 'Relationship details'}
                 </p>
                 {selectedPatient.relationshipStatus === 'active' && (
                   <button
@@ -345,7 +334,7 @@ export default function Clients() {
 
       <Modal open={!!endingId} onClose={() => setEndingId(null)} title="End Relationship">
         <p className="text-[13px] text-gray-500 mb-4">
-          End this patient relationship via <code className="text-[12px] bg-brand-50 px-1.5 py-0.5 rounded">PATCH /patient-relationships/&lt;id&gt;/</code> with <code className="text-[12px] bg-brand-50 px-1 py-0.5 rounded">status: ended</code>.
+          This will end your relationship with this client. They will no longer appear in your active client list.
         </p>
         <div className="flex gap-3">
           <button type="button" onClick={() => setEndingId(null)}

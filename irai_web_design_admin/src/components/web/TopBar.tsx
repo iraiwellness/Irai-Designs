@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Bell, ChevronDown, LogOut, User } from 'lucide-react';
+import { Bell, ChevronDown, LogOut, User } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { MOCK_PRACTITIONER } from '../../mockData';
 import { cn } from '../../lib/utils';
@@ -23,10 +23,6 @@ export default function TopBar({ workspace, navItems }: TopBarProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
   const displayName = user?.name ?? MOCK_PRACTITIONER.name;
-  const searchPlaceholder =
-    workspace === 'admin'
-      ? 'Search bookings, users, therapists…'
-      : 'Search clients, messages…';
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -127,32 +123,14 @@ export default function TopBar({ workspace, navItems }: TopBarProps) {
           <TopNav items={navItems} />
         </div>
 
-        <div className="relative w-44 xl:w-56 shrink-0 hidden xl:block">
-          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300" />
-          <input
-            type="search"
-            placeholder={searchPlaceholder}
-            className="w-full bg-brand-50 border border-brand-border rounded-xl py-2 pl-10 pr-4 text-[13px] text-slate placeholder:text-gray-300 outline-none focus:border-forest/30 transition-colors"
-          />
-        </div>
-
         <div className="flex items-center gap-2 shrink-0">{utilities}</div>
       </header>
     );
   }
 
   return (
-    <header className="h-16 shrink-0 bg-white border-b border-brand-border px-6 flex items-center gap-4 sticky top-0 z-40">
-      <div className="flex-1 max-w-md relative">
-        <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300" />
-        <input
-          type="search"
-          placeholder={searchPlaceholder}
-          className="w-full bg-brand-50 border border-brand-border rounded-xl py-2 pl-10 pr-4 text-[13px] text-slate placeholder:text-gray-300 outline-none focus:border-forest/30 transition-colors"
-        />
-      </div>
-
-      <div className="flex items-center gap-2 ml-auto">{utilities}</div>
+    <header className="h-16 shrink-0 bg-white border-b border-brand-border px-6 flex items-center justify-end sticky top-0 z-40">
+      <div className="flex items-center gap-2">{utilities}</div>
     </header>
   );
 }

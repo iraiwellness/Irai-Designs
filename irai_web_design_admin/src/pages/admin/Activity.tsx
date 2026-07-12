@@ -46,12 +46,6 @@ export default function AdminActivity() {
 
   return (
     <div className="p-6 lg:p-8">
-      <div className="mb-6">
-        <p className="small-caps text-gray-400 mb-1">Admin · GET /admin/activity/</p>
-        <h1 className="serif text-4xl text-slate">Activity Log</h1>
-        <p className="text-[13px] text-gray-400 mt-1">{ADMIN_ACTIVITY.length} entries · newest first</p>
-      </div>
-
       <div className="flex flex-wrap items-center gap-3 mb-5">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300" />

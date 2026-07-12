@@ -1,4 +1,4 @@
-import { Patient, Appointment, Practitioner, AISessionNote, PractitionerGroupSession, AttentionNotification, PersonalProfileFields, PractitionerProfileFields, LookupSpecialization, LookupLanguage, PublicService, PublicLocation, PublicReview } from './types';
+import { Patient, Appointment, Practitioner, AISessionNote, PractitionerGroupSession, PractitionerBreak, ClientRequest, AttentionNotification, PersonalProfileFields, PractitionerProfileFields, LookupSpecialization, LookupLanguage, PublicService, PublicLocation, PublicReview } from './types';
 
 export const MOCK_PRACTITIONER: Practitioner = {
   id: 'p1',
@@ -7,12 +7,32 @@ export const MOCK_PRACTITIONER: Practitioner = {
   specialty: 'Nutritionist',
   rating: 4.9,
   totalClients: 124,
-  totalSessions: 312,
   activeRelationships: 118,
   experience: '8 Years',
   about: 'Specializing in holistic nutrition and metabolic health. Helping clients lead a balanced life through mindful eating.',
-  verificationStatus: 'verified',
 };
+
+export const MOCK_CLIENT_REQUESTS: ClientRequest[] = [
+  { id: 'rel-1', name: 'Priya Sharma', serviceType: 'Nutrition Consultation', requestedAt: '2 hr ago' },
+  { id: 'rel-2', name: 'Arjun Mehta', serviceType: 'Yoga Therapy', requestedAt: 'Yesterday' },
+];
+
+export const MOCK_ATTENTION_NOTIFICATIONS: AttentionNotification[] = [
+  {
+    id: 'n1',
+    type: 'new_message',
+    title: 'New message from Emma Watson',
+    body: 'Can we reschedule tomorrow\'s session?',
+    createdAt: '30 min ago',
+  },
+  {
+    id: 'n2',
+    type: 'session_reminder',
+    title: 'Session in 1 hour',
+    body: 'Follow-up with James Rodriguez at 11:30 AM',
+    createdAt: '1 hour ago',
+  },
+];
 
 export const MOCK_ADMIN_PERSONAL_PROFILE: PersonalProfileFields = {
   firstName: 'Admin',
@@ -55,7 +75,7 @@ export const MOCK_PROFESSIONAL_PROFILE: PractitionerProfileFields = {
   metadata: { specialty: 'clinical-nutrition' },
 };
 
-/** GET /accounts/specializations/ — lookup catalog for 3.4 */
+/** Lookup catalog for specializations */
 export const LOOKUP_SPECIALIZATIONS: LookupSpecialization[] = [
   { id: 1, name: 'Hatha Yoga', slug: 'hatha-yoga' },
   { id: 2, name: 'Vinyasa Flow', slug: 'vinyasa-flow' },
@@ -64,7 +84,7 @@ export const LOOKUP_SPECIALIZATIONS: LookupSpecialization[] = [
   { id: 5, name: 'Therapeutic Yoga', slug: 'therapeutic-yoga' },
 ];
 
-/** GET /accounts/languages/ — lookup catalog for 3.5 */
+/** Lookup catalog for languages */
 export const LOOKUP_LANGUAGES: LookupLanguage[] = [
   { code: 'en', name: 'English' },
   { code: 'hi', name: 'Hindi' },
@@ -95,7 +115,7 @@ export const MOCK_PRACTITIONER_EXPORT_DATA = {
   date_joined: '2023-06-15T00:00:00.000000Z',
 };
 
-/** GET /accounts/practitioners/<id>/ — public detail extras (3.2) */
+/** Public practitioner detail extras */
 export const MOCK_PUBLIC_SERVICES: PublicService[] = [
   { id: 1, serviceType: 3, name: '1-on-1 Nutrition Consultation', durationMinutes: 45, price: '500.00', description: 'Personalized nutrition assessment and meal planning.', isActive: true },
   { id: 2, serviceType: 3, name: 'Follow-up Session', durationMinutes: 30, price: '350.00', description: 'Progress review and plan adjustments.', isActive: true },
@@ -443,26 +463,7 @@ export const MOCK_AI_NOTES: AISessionNote[] = [
   },
 ];
 
-export const MOCK_ATTENTION_NOTIFICATIONS: AttentionNotification[] = [
-  {
-    id: 'n1',
-    type: 'new_message',
-    title: 'New message from Emma Watson',
-    body: 'Can we reschedule tomorrow\'s session?',
-    createdAt: '30 min ago',
-    isRead: false,
-  },
-  {
-    id: 'n2',
-    type: 'session_reminder',
-    title: 'Session in 1 hour',
-    body: 'Follow-up with James Rodriguez at 11:30 AM',
-    createdAt: '1 hour ago',
-    isRead: false,
-  },
-];
-
-// ── Group Sessions (Practitioner's assigned sessions) ─────────────────────────
+// ── AI-Generated Session Notes ────────────────────────────────────────────────
 
 export const MOCK_GROUP_SESSIONS: PractitionerGroupSession[] = [
   {
@@ -499,3 +500,58 @@ export const MOCK_GROUP_SESSIONS: PractitionerGroupSession[] = [
     level: 'Intermediate',
   },
 ];
+
+/** Practitioner break / leave requests */
+export const MOCK_PRACTITIONER_BREAKS: PractitionerBreak[] = [
+  {
+    id: 'br1',
+    practitionerId: 't1',
+    practitionerName: 'Dr. Sarah Mitchell',
+    date: formatOffsetDate(2),
+    startTime: '00:00',
+    endTime: '23:59',
+    reason: 'Personal leave',
+    kind: 'day_off',
+    status: 'pending',
+    isRecurring: false,
+    recurringDay: null,
+    requestedAt: new Date().toISOString(),
+    reviewedAt: null,
+  },
+  {
+    id: 'br2',
+    practitionerId: 't1',
+    practitionerName: 'Dr. Sarah Mitchell',
+    date: formatOffsetDate(4),
+    startTime: '14:00',
+    endTime: '16:00',
+    reason: 'Doctor appointment',
+    kind: 'partial',
+    status: 'approved',
+    isRecurring: false,
+    recurringDay: null,
+    requestedAt: new Date(Date.now() - 86400000).toISOString(),
+    reviewedAt: new Date(Date.now() - 43200000).toISOString(),
+  },
+  {
+    id: 'br3',
+    practitionerId: 't2',
+    practitionerName: 'Dr. Michael Chen',
+    date: formatOffsetDate(3),
+    startTime: '00:00',
+    endTime: '23:59',
+    reason: 'Sick leave',
+    kind: 'day_off',
+    status: 'pending',
+    isRecurring: false,
+    recurringDay: null,
+    requestedAt: new Date(Date.now() - 3600000).toISOString(),
+    reviewedAt: null,
+  },
+];
+
+function formatOffsetDate(daysFromToday: number) {
+  const d = new Date();
+  d.setDate(d.getDate() + daysFromToday);
+  return d.toISOString().slice(0, 10);
+}

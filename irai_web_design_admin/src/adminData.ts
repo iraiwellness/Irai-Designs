@@ -191,15 +191,6 @@ export const ADMIN_STATS = {
   pendingTherapists: 2,
   createdAt: '2026-05-16T00:00:00.000000Z',
   updatedAt: '2026-05-16T14:30:00.000000Z',
-  metadata: {
-    user_growth_weekly_pct: 4.2,
-    practitioner_growth_weekly_pct: 8.3,
-    avg_session_duration_minutes: 42,
-    cancelled_bookings_today: 3,
-    no_show_rate_pct: 2.1,
-    peak_booking_hour: '09:00',
-    last_recalculated_at: '2026-05-16T14:00:00Z',
-  },
 };
 
 const MOCK_PATIENT_PROFILES: Record<string, PatientProfile> = {
@@ -446,6 +437,39 @@ export const ADMIN_SETTINGS: SystemSetting[] = [
     updatedAt: '2026-02-05T16:00:00Z',
   },
 ];
+
+export const LOOKUP_ADMIN_SCOPES = [
+  { slug: 'users', name: 'User Management' },
+  { slug: 'therapists', name: 'Therapist Verification' },
+  { slug: 'bookings', name: 'Bookings & Sessions' },
+  { slug: 'disputes', name: 'Dispute Resolution' },
+  { slug: 'settings', name: 'Platform Settings' },
+  { slug: 'activity', name: 'Activity & Audit' },
+  { slug: 'leave', name: 'Leave Requests' },
+] as const;
+
+export const MOCK_ADMIN_STAFF_PROFILE = {
+  title: 'Platform Administrator',
+  department: 'Operations',
+  bio: 'Oversees practitioner verification, user support escalations, and platform compliance for the Irai wellness network.',
+  languages: ['en', 'hi'],
+  accessScopes: ['users', 'therapists', 'disputes', 'settings', 'activity'],
+  responsibilities: ['Therapist verification', 'Dispute escalation', 'Platform settings'],
+  phoneVerified: true,
+  isStaff: true,
+  dateJoined: '2024-01-01T00:00:00.000000Z',
+  googleId: null,
+  appleId: null,
+  isSuspended: false,
+  suspensionReason: '',
+  metadata: { access_level: 'full', region: 'IN' },
+};
+
+export const MOCK_ADMIN_ACCOUNT_STATS = {
+  usersManaged: 284,
+  verificationsProcessed: 48,
+  disputesResolved: 12,
+};
 
 export const MOCK_ADMIN_EXPORT_DATA = {
   id: 1,

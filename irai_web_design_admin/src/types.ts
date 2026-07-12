@@ -9,8 +9,6 @@ export type SessionStatus =
   | 'missed'
   | 'no-show';
 
-export type VerificationStatus = 'pending' | 'verified' | 'rejected' | 'suspended';
-
 export interface Patient {
   id: string;
   name: string;
@@ -19,7 +17,6 @@ export interface Patient {
   serviceType: string;
   relationshipStatus: RelationshipStatus;
   healthAccessGranted: boolean;
-  /** API: patient-relationships/<id> */
   relationshipId: number;
   patientUserId: number;
   practitionerId: number;
@@ -60,16 +57,28 @@ export interface Appointment {
 export interface Practitioner {
   id: string;
   name: string;
+  title: string;
   specialty: 'Nutritionist' | 'Psychologist' | 'Doctor' | 'Physiotherapist';
-  title?: string;
   rating: number;
   totalClients: number;
-  totalSessions: number;
   activeRelationships: number;
   experience: string;
   about: string;
-  verificationStatus: VerificationStatus;
-  rejectionReason?: string;
+}
+
+export interface ClientRequest {
+  id: string;
+  name: string;
+  serviceType: string;
+  requestedAt: string;
+}
+
+export interface AttentionNotification {
+  id: string;
+  type: 'new_message' | 'session_reminder';
+  title: string;
+  body: string;
+  createdAt: string;
 }
 
 export interface PractitionerProfileFields {
@@ -101,13 +110,26 @@ export interface PersonalProfileFields {
   onboardingStep: number;
 }
 
-export interface AttentionNotification {
-  id: string;
-  type: 'new_message' | 'booking_requested' | 'session_reminder';
+export interface AdminStaffProfileFields {
   title: string;
-  body: string;
-  createdAt: string;
-  isRead: boolean;
+  department: string;
+  bio: string;
+  languages: string[];
+  accessScopes: string[];
+  responsibilities: string[];
+  phoneVerified: boolean;
+  isStaff: boolean;
+  dateJoined: string;
+  googleId: string | null;
+  appleId: string | null;
+  isSuspended: boolean;
+  suspensionReason: string;
+  metadata: Record<string, string | number | boolean>;
+}
+
+export interface LookupAdminScope {
+  slug: string;
+  name: string;
 }
 
 export interface AISessionNote {
@@ -139,6 +161,28 @@ export interface PractitionerGroupSession {
   enrolled: number;
   capacity: number;
   level: 'Beginner' | 'Intermediate' | 'Advanced';
+}
+
+/** Practitioner unavailability / leave request */
+export type UnavailabilityKind = 'day_off' | 'partial';
+
+export type BreakRequestStatus = 'pending' | 'approved' | 'rejected';
+
+export interface PractitionerBreak {
+  id: string;
+  practitionerId: string;
+  practitionerName: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  reason: string;
+  kind: UnavailabilityKind;
+  status: BreakRequestStatus;
+  isRecurring: boolean;
+  recurringDay?: number | null;
+  requestedAt: string;
+  reviewedAt?: string | null;
+  rejectionReason?: string;
 }
 
 export interface PublicService {

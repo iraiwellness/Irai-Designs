@@ -47,7 +47,7 @@ export default function Signup() {
           </div>
           <h2 className="font-serif text-[28px] text-white leading-tight">Join as Practitioner</h2>
           <p className="text-[12px] text-white/35 mt-2 font-medium max-w-xs">
-            POST /accounts/signup/ · PractitionerProfile created with status pending
+            Create your practitioner account. Your profile will be pending until verified.
           </p>
         </div>
       </div>

@@ -63,12 +63,6 @@ export default function AdminBookings() {
 
   return (
     <div className="p-6 lg:p-8">
-      <div className="mb-6">
-        <p className="small-caps text-gray-400 mb-1">Admin</p>
-        <h1 className="serif text-4xl text-slate">All Bookings</h1>
-        <p className="text-[13px] text-gray-400 mt-1">{ADMIN_BOOKINGS.length} total records</p>
-      </div>
-
       {/* Status filter chips — one per backend Session status */}
       <div className="flex flex-wrap gap-2 mb-5">
         <button

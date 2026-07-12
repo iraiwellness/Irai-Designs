@@ -34,19 +34,9 @@ export default function AdminGroupSessions() {
     setShowCreate(false);
   };
 
-  const totalEnrolled = sessions.reduce((a, s) => a + s.enrolled, 0);
-  const totalCapacity = sessions.reduce((a, s) => a + s.capacity, 0);
-
   return (
     <div className="p-6 lg:p-8">
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <p className="small-caps text-gray-400 mb-1">Admin</p>
-          <h1 className="serif text-4xl text-slate">Group Sessions</h1>
-          <p className="text-[13px] text-gray-400 mt-1">
-            {sessions.filter(s => s.status === 'published').length} published · {totalEnrolled}/{totalCapacity} enrolled
-          </p>
-        </div>
+      <div className="flex justify-end mb-6">
         <button
           type="button"
           onClick={() => setShowCreate(true)}

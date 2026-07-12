@@ -6,11 +6,17 @@ import {
 import { useNavigate } from 'react-router-dom';
 import {
   MOCK_PRACTITIONER, MOCK_APPOINTMENTS, MOCK_GROUP_SESSIONS,
-  MOCK_PATIENTS, MOCK_ATTENTION_NOTIFICATIONS,
+  MOCK_CLIENT_REQUESTS, MOCK_ATTENTION_NOTIFICATIONS,
 } from '../../mockData';
 import { useAuth } from '../../context/AuthContext';
 import { cn } from '../../lib/utils';
 import type { Practitioner } from '../../types';
+
+type VerificationStatus = 'pending' | 'verified' | 'rejected' | 'suspended';
+type HomePractitioner = Practitioner & {
+  verificationStatus?: VerificationStatus;
+  rejectionReason?: string;
+};
 
 const TYPE_CONFIG: Record<string, { color: string; bg: string; label: string }> = {
   'follow-up':    { color: '#4a6741', bg: 'bg-[#f0f4ee]',  label: 'Follow-up'    },
@@ -18,13 +24,14 @@ const TYPE_CONFIG: Record<string, { color: string; bg: string; label: string }> 
   'consultation': { color: '#e8a87c', bg: 'bg-[#fdf3ec]',  label: 'Consultation' },
 };
 
-function VerificationBanner({ profile }: { profile: Practitioner }) {
+function VerificationBanner({ profile }: { profile: HomePractitioner }) {
   const navigate = useNavigate();
-  const { verificationStatus, rejectionReason } = profile;
+  const verificationStatus = profile.verificationStatus ?? 'verified';
+  const { rejectionReason } = profile;
 
   if (verificationStatus === 'verified') return null;
 
-  const config = {
+  const configs = {
     pending: {
       icon: Clock,
       border: 'border-amber-200',
@@ -52,7 +59,9 @@ function VerificationBanner({ profile }: { profile: Practitioner }) {
       body: rejectionReason ?? 'Your practitioner account has been suspended.',
       action: 'View details',
     },
-  }[verificationStatus];
+  } as const;
+
+  const config = configs[verificationStatus as keyof typeof configs];
 
   const Icon = config.icon;
 
@@ -81,8 +90,9 @@ export default function PractitionerHome() {
   const { user } = useAuth();
   const todayAppts = MOCK_APPOINTMENTS.filter(a => a.status === 'confirmed');
   const nextGroup = MOCK_GROUP_SESSIONS[0];
-  const pendingRequests = MOCK_PATIENTS.filter(p => p.relationshipStatus === 'requested');
-  const unreadNotifications = MOCK_ATTENTION_NOTIFICATIONS.filter(n => !n.isRead);
+  const pendingRequests = MOCK_CLIENT_REQUESTS;
+  const unreadNotifications = MOCK_ATTENTION_NOTIFICATIONS;
+  const practitioner = MOCK_PRACTITIONER as HomePractitioner;
   const displayName = user?.name ?? MOCK_PRACTITIONER.name;
   const profileLine = MOCK_PRACTITIONER.title ?? MOCK_PRACTITIONER.specialty;
 
@@ -94,7 +104,7 @@ export default function PractitionerHome() {
 
   return (
     <div className="p-6 lg:p-8">
-      <VerificationBanner profile={MOCK_PRACTITIONER} />
+      <VerificationBanner profile={practitioner} />
 
       <div className="mb-8">
         <p className="small-caps text-gray-400 mb-1">{today}</p>
@@ -127,7 +137,7 @@ export default function PractitionerHome() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
-        <div className="xl:col-span-3">
+        <div className="xl:col-span-3 space-y-6">
           <section className="space-y-3">
             <div className="flex items-center justify-between">
               <p className="small-caps text-gray-400">Today&apos;s Schedule</p>
@@ -192,6 +202,35 @@ export default function PractitionerHome() {
               )}
             </div>
           </section>
+
+          {nextGroup && (
+            <section>
+              <p className="small-caps text-gray-400 mb-3">Next Group Session</p>
+              <div className="bg-white rounded-2xl border border-brand-border shadow-sm overflow-hidden">
+                <div className="h-1 w-full bg-[#4B7399]" />
+                <div className="p-5">
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="w-12 h-12 bg-[#eef3f9] rounded-xl flex items-center justify-center shrink-0">
+                      <Users size={20} className="text-[#4B7399]" />
+                    </div>
+                    <div>
+                      <p className="text-[15px] font-bold text-slate">{nextGroup.title}</p>
+                      <p className="text-[12px] text-gray-400 mt-1">
+                        {nextGroup.time} · {nextGroup.enrolled}/{nextGroup.capacity} enrolled
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/practitioner/session/${nextGroup.id}?type=group`)}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-[#4B7399] rounded-xl text-white text-[13px] font-bold hover:bg-[#3d6280] transition-colors"
+                  >
+                    <Play size={14} fill="white" /> Go Live
+                  </button>
+                </div>
+              </div>
+            </section>
+          )}
         </div>
 
         <div className="xl:col-span-2 space-y-6">
@@ -266,7 +305,7 @@ export default function PractitionerHome() {
                 </div>
               )}
 
-              {MOCK_PRACTITIONER.verificationStatus === 'verified' && attentionCount === 0 && (
+              {(practitioner.verificationStatus ?? 'verified') === 'verified' && attentionCount === 0 && (
                 <div className="p-6 flex flex-col items-center gap-2 text-center">
                   <CheckCircle2 size={24} className="text-forest" />
                   <p className="text-[13px] font-semibold text-slate">You&apos;re all caught up</p>
@@ -275,35 +314,6 @@ export default function PractitionerHome() {
               )}
             </div>
           </section>
-
-          {nextGroup && (
-            <section>
-              <p className="small-caps text-gray-400 mb-3">Next Group Session</p>
-              <div className="bg-white rounded-2xl border border-brand-border shadow-sm overflow-hidden">
-                <div className="h-1 w-full bg-[#4B7399]" />
-                <div className="p-5">
-                  <div className="flex items-start gap-4 mb-4">
-                    <div className="w-12 h-12 bg-[#eef3f9] rounded-xl flex items-center justify-center shrink-0">
-                      <Users size={20} className="text-[#4B7399]" />
-                    </div>
-                    <div>
-                      <p className="text-[15px] font-bold text-slate">{nextGroup.title}</p>
-                      <p className="text-[12px] text-gray-400 mt-1">
-                        {nextGroup.time} · {nextGroup.enrolled}/{nextGroup.capacity} enrolled
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/practitioner/session/${nextGroup.id}?type=group`)}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-[#4B7399] rounded-xl text-white text-[13px] font-bold hover:bg-[#3d6280] transition-colors"
-                  >
-                    <Play size={14} fill="white" /> Go Live
-                  </button>
-                </div>
-              </div>
-            </section>
-          )}
         </div>
       </div>
     </div>

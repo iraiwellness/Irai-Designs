@@ -101,7 +101,7 @@ export default function Login() {
               {role === 'admin' ? 'Admin' : 'Practitioner'}
             </span>
             <h2 className="serif text-3xl text-slate">Welcome back</h2>
-            <p className="text-[13px] text-gray-400 mt-1">POST /accounts/login/ · Enter your credentials.</p>
+            <p className="text-[13px] text-gray-400 mt-1">Enter your credentials to continue.</p>
           </div>
 
           <AnimatePresence mode="wait">
@@ -201,10 +201,6 @@ export default function Login() {
                     Apple
                   </button>
                 </div>
-                <p className="text-[10px] text-center text-gray-400">
-                  POST /accounts/social/google/ · POST /accounts/social/apple/
-                </p>
-
                 {role === 'practitioner' && (
                   <p className="text-center text-[12px] text-gray-500 pt-1">
                     New practitioner?{' '}

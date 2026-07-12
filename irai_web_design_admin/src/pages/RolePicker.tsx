@@ -115,7 +115,6 @@ export default function RolePicker() {
               className="text-forest font-bold hover:underline">
               Create account
             </button>
-            {' '}· POST /accounts/signup/
           </p>
         </motion.div>
       </div>

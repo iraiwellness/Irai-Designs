@@ -1,16 +1,20 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Clock, User, Play, Users, Wind, Leaf, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
-import { format, addDays, startOfToday, isSameDay, subDays } from 'date-fns';
+import {
+  Plus, Clock, User, Play, Users, Wind, Leaf,
+  ChevronLeft, ChevronRight, CheckCircle2,
+  CalendarOff, Trash2, Palmtree, Stethoscope, Hourglass,
+} from 'lucide-react';
+import { format, addDays, startOfToday, isSameDay, subDays, parseISO } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import type { LucideIcon } from 'lucide-react';
 import type { FormEvent } from 'react';
-import { MOCK_GROUP_SESSIONS } from '../../mockData';
-import type { PractitionerGroupSession } from '../../types';
+import { MOCK_GROUP_SESSIONS, MOCK_PRACTITIONER_BREAKS } from '../../mockData';
+import type { PractitionerGroupSession, PractitionerBreak, UnavailabilityKind, BreakRequestStatus } from '../../types';
 import { cn } from '../../lib/utils';
 import Modal from '../../components/ui/Modal';
 
-type SlotStatus = 'booked' | 'available' | 'break';
+type SlotStatus = 'booked' | 'available' | 'break' | 'off';
 
 interface ScheduleSlot {
   id: string;
@@ -18,24 +22,18 @@ interface ScheduleSlot {
   status: SlotStatus;
   apptId?: string;
   name?: string;
+  offReason?: string;
 }
 
-const INITIAL_SLOTS: ScheduleSlot[] = [
-  { id: 's1', time: '09:00 AM', status: 'booked', apptId: 'a1', name: 'Emma Watson'     },
-  { id: 's2', time: '10:00 AM', status: 'available'                                         },
-  { id: 's3', time: '11:30 AM', status: 'booked', apptId: 'a2', name: 'James Rodriguez' },
-  { id: 's4', time: '12:00 PM', status: 'break'                                             },
-  { id: 's5', time: '01:00 PM', status: 'available'                                         },
-  { id: 's6', time: '02:00 PM', status: 'available'                                         },
-  { id: 's7', time: '03:00 PM', status: 'booked', apptId: 'a3', name: 'Sophia Chen'     },
-  { id: 's8', time: '04:00 PM', status: 'available'                                         },
-];
-
-const TIME_PRESETS = [
-  '08:00 AM', '08:30 AM', '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM',
-  '11:00 AM', '11:30 AM', '12:00 PM', '12:30 PM', '01:00 PM', '01:30 PM',
-  '02:00 PM', '02:30 PM', '03:00 PM', '03:30 PM', '04:00 PM', '04:30 PM',
-  '05:00 PM', '05:30 PM', '06:00 PM',
+const BASE_SLOTS: Omit<ScheduleSlot, 'id' | 'status' | 'offReason'>[] = [
+  { time: '09:00 AM', apptId: 'a1', name: 'Emma Watson' },
+  { time: '10:00 AM' },
+  { time: '11:30 AM', apptId: 'a2', name: 'James Rodriguez' },
+  { time: '12:00 PM' },
+  { time: '01:00 PM' },
+  { time: '02:00 PM' },
+  { time: '03:00 PM', apptId: 'a3', name: 'Sophia Chen' },
+  { time: '04:00 PM' },
 ];
 
 const CAT_ICON: Record<string, LucideIcon> = {
@@ -46,19 +44,114 @@ const CAT_COLOR: Record<string, string> = {
   yoga: '#4a6741', breathwork: '#4B7399', meditation: '#7B5EA7', mobility: '#E07B5A',
 };
 
-function parseTimeToMinutes(time: string): number {
-  const match = time.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+const REASON_OPTIONS = [
+  'Personal leave',
+  'Sick leave',
+  'Holiday',
+  'Doctor appointment',
+  'Family emergency',
+  'Other',
+] as const;
+
+const PARTIAL_START_OPTIONS = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00'];
+const PARTIAL_END_OPTIONS = ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
+
+const CURRENT_PRACTITIONER_ID = 't1';
+
+const STATUS_STYLE: Record<BreakRequestStatus, string> = {
+  pending:  'text-amber-600 border-amber-200 bg-amber-50',
+  approved: 'text-forest border-forest/20 bg-[#f0f4ee]',
+  rejected: 'text-terracotta border-terracotta/20 bg-[#fdf3ec]',
+};
+
+function dateKey(date: Date) {
+  return format(date, 'yyyy-MM-dd');
+}
+
+function parseSlotMinutes(time: string) {
+  const match = time.match(/(\d+):(\d+)\s*(AM|PM)/i);
   if (!match) return 0;
-  let hours = parseInt(match[1], 10);
-  const minutes = parseInt(match[2], 10);
-  const period = match[3].toUpperCase();
-  if (period === 'PM' && hours !== 12) hours += 12;
-  if (period === 'AM' && hours === 12) hours = 0;
+  let hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  const meridiem = match[3].toUpperCase();
+  if (meridiem === 'PM' && hours !== 12) hours += 12;
+  if (meridiem === 'AM' && hours === 12) hours = 0;
   return hours * 60 + minutes;
 }
 
-function sortSlots(slots: ScheduleSlot[]): ScheduleSlot[] {
-  return [...slots].sort((a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time));
+function parse24hMinutes(time: string) {
+  const [h, m] = time.split(':').map(Number);
+  return h * 60 + (m ?? 0);
+}
+
+function format24hLabel(time: string) {
+  const [h, m] = time.split(':').map(Number);
+  const meridiem = h >= 12 ? 'PM' : 'AM';
+  const hour12 = h % 12 || 12;
+  return `${hour12}:${String(m).padStart(2, '0')} ${meridiem}`;
+}
+
+function isApproved(b: PractitionerBreak) {
+  return b.status === 'approved';
+}
+
+function getBreakForDate(breaks: PractitionerBreak[], key: string) {
+  return breaks.filter(b => b.date === key);
+}
+
+function isApprovedFullDayOff(breaks: PractitionerBreak[], key: string) {
+  return getBreakForDate(breaks, key).some(b => b.kind === 'day_off' && isApproved(b));
+}
+
+function isPendingDayOff(breaks: PractitionerBreak[], key: string) {
+  return getBreakForDate(breaks, key).find(b => b.kind === 'day_off' && b.status === 'pending');
+}
+
+function slotIsBlocked(slotTime: string, breaks: PractitionerBreak[], key: string) {
+  const dayBreaks = getBreakForDate(breaks, key).filter(isApproved);
+  if (dayBreaks.some(b => b.kind === 'day_off')) {
+    return dayBreaks.find(b => b.kind === 'day_off') ?? null;
+  }
+  const slotMin = parseSlotMinutes(slotTime);
+  return dayBreaks.find(b => {
+    if (b.kind !== 'partial') return false;
+    const start = parse24hMinutes(b.startTime);
+    const end = parse24hMinutes(b.endTime);
+    return slotMin >= start && slotMin < end;
+  }) ?? null;
+}
+
+function buildSlotsForDate(key: string, breaks: PractitionerBreak[]): ScheduleSlot[] {
+  return BASE_SLOTS.map((slot, i) => {
+    const blocked = slotIsBlocked(slot.time, breaks, key);
+    if (blocked) {
+      return {
+        id: `slot-${slot.time}`,
+        ...slot,
+        status: 'off' as const,
+        offReason: blocked.reason,
+        apptId: undefined,
+        name: undefined,
+      };
+    }
+    if (i === 3) {
+      return { id: `slot-${slot.time}`, ...slot, status: 'break' as const };
+    }
+    if (slot.apptId && slot.name) {
+      return { id: `slot-${slot.time}`, ...slot, status: 'booked' as const };
+    }
+    return { id: `slot-${slot.time}`, ...slot, status: 'available' as const };
+  });
+}
+
+function reasonIcon(reason: string) {
+  if (reason.toLowerCase().includes('doctor') || reason.toLowerCase().includes('sick')) {
+    return Stethoscope;
+  }
+  if (reason.toLowerCase().includes('holiday') || reason.toLowerCase().includes('personal')) {
+    return Palmtree;
+  }
+  return CalendarOff;
 }
 
 export default function Schedule() {
@@ -66,42 +159,52 @@ export default function Schedule() {
   const today = startOfToday();
   const [weekStart, setWeekStart] = useState(today);
   const [selectedDate, setSelectedDate] = useState(today);
-  const [slots, setSlots] = useState<ScheduleSlot[]>(INITIAL_SLOTS);
+  const [breaks, setBreaks] = useState<PractitionerBreak[]>(
+    MOCK_PRACTITIONER_BREAKS.filter(b => b.practitionerId === CURRENT_PRACTITIONER_ID),
+  );
   const [groupSessions, setGroupSessions] = useState(MOCK_GROUP_SESSIONS);
-  const [showAvailability, setShowAvailability] = useState(false);
+  const [showDayOff, setShowDayOff] = useState(false);
   const [showGroupCreate, setShowGroupCreate] = useState(false);
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const selectedKey = dateKey(selectedDate);
+  const slots = useMemo(() => buildSlotsForDate(selectedKey, breaks), [selectedKey, breaks]);
+  const approvedFullDayOff = isApprovedFullDayOff(breaks, selectedKey);
+  const pendingDayOff = isPendingDayOff(breaks, selectedKey);
+  const dayBreaks = getBreakForDate(breaks, selectedKey);
+
   const booked = slots.filter(s => s.status === 'booked').length;
   const available = slots.filter(s => s.status === 'available').length;
-  const existingTimes = useMemo(() => slots.map(s => s.time), [slots]);
 
-  const addSlot = (time: string, status: 'available' | 'break') => {
-    if (slots.some(s => s.time.toUpperCase() === time.toUpperCase())) {
-      return 'A slot already exists at this time.';
-    }
-    setSlots(prev => sortSlots([...prev, { id: `slot-${Date.now()}`, time, status }]));
-    return null;
-  };
+  const upcomingBreaks = useMemo(
+    () =>
+      [...breaks]
+        .filter(b => b.date >= dateKey(today))
+        .sort((a, b) => a.date.localeCompare(b.date)),
+    [breaks, today],
+  );
 
   const addGroupSession = (session: PractitionerGroupSession) => {
     setGroupSessions(prev => [session, ...prev]);
   };
 
+  const handleRemoveBreak = (id: string) => {
+    setBreaks(prev => prev.filter(b => b.id !== id));
+  };
+
+  const openDayOffModal = () => {
+    setShowDayOff(true);
+  };
+
   return (
     <div className="p-6 lg:p-8">
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <p className="small-caps text-gray-400 mb-1">Practitioner</p>
-          <h1 className="serif text-4xl text-slate leading-tight">Schedule</h1>
-          <p className="text-[13px] text-gray-400 mt-1">{booked} booked · {available} available today</p>
-        </div>
+      <div className="flex justify-end mb-5">
         <button
           type="button"
-          onClick={() => setShowAvailability(true)}
+          onClick={openDayOffModal}
           className="flex items-center gap-2 px-4 py-2.5 bg-slate text-white rounded-xl text-[13px] font-bold hover:bg-slate/90 transition-colors"
         >
-          <Plus size={16} /> Add Availability
+          <CalendarOff size={16} /> Day off
         </button>
       </div>
 
@@ -123,43 +226,124 @@ export default function Schedule() {
             </div>
             <div className="grid grid-cols-7 gap-2">
               {weekDays.map(date => {
+                const key = dateKey(date);
                 const isSelected = isSameDay(date, selectedDate);
                 const isToday = isSameDay(date, today);
+                const dayItems = getBreakForDate(breaks, key);
+                const hasOff = dayItems.length > 0;
+                const approvedOff = isApprovedFullDayOff(breaks, key);
+                const pendingOff = dayItems.some(b => b.kind === 'day_off' && b.status === 'pending');
                 return (
                   <button key={date.toString()} type="button" onClick={() => setSelectedDate(date)}
-                    className={cn('flex flex-col items-center gap-1 py-3 rounded-xl transition-all',
+                    className={cn('flex flex-col items-center gap-1 py-3 rounded-xl transition-all relative',
                       isSelected ? 'bg-slate text-white' : 'hover:bg-brand-50')}>
                     <span className={cn('text-[10px] font-bold uppercase', isSelected ? 'text-white/60' : 'text-gray-400')}>
                       {format(date, 'eee')}
                     </span>
-                    <span className={cn('text-[16px] font-bold', isSelected ? 'text-white' : isToday ? 'text-forest' : 'text-slate')}>
+                    <span className={cn(
+                      'text-[16px] font-bold',
+                      isSelected ? 'text-white' : isToday ? 'text-forest' : approvedOff ? 'text-terracotta' : pendingOff ? 'text-amber-600' : 'text-slate',
+                    )}>
                       {format(date, 'd')}
                     </span>
-                    {isToday && !isSelected && <span className="w-1.5 h-1.5 rounded-full bg-forest" />}
+                    {hasOff && (
+                      <span className={cn(
+                        'w-1.5 h-1.5 rounded-full',
+                        approvedOff ? 'bg-terracotta' : pendingOff ? 'bg-amber-400' : 'bg-forest/40',
+                        isSelected && 'bg-white/70',
+                      )} />
+                    )}
+                    {isToday && !isSelected && !hasOff && <span className="w-1.5 h-1.5 rounded-full bg-forest" />}
                   </button>
                 );
               })}
             </div>
           </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <p className="small-caps text-gray-400">Time Slots</p>
-              <p className="text-[13px] text-gray-400">{format(selectedDate, 'EEEE, MMMM d')}</p>
-            </div>
-            <AnimatePresence mode="wait">
-              <motion.div key={selectedDate.toString()} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                className="bg-white rounded-2xl border border-brand-border shadow-sm divide-y divide-brand-border overflow-hidden">
-                {slots.length === 0 ? (
-                  <p className="px-5 py-10 text-center text-[13px] text-gray-400">No slots yet. Add availability to get started.</p>
-                ) : (
-                  slots.map(slot => (
-                    <div key={slot.id} className={cn('px-5 py-4 flex items-center gap-4', slot.status === 'break' && 'opacity-50 bg-brand-50/30')}>
+          {pendingDayOff && !approvedFullDayOff && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-amber-50 border border-amber-200 rounded-2xl p-5 flex items-start gap-4"
+            >
+              <div className="w-11 h-11 bg-white rounded-xl border border-amber-200 flex items-center justify-center shrink-0">
+                <Hourglass size={20} className="text-amber-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="small-caps text-amber-600 mb-1">Day off · Pending approval</p>
+                <h3 className="serif text-xl text-slate leading-tight">
+                  {format(selectedDate, 'EEEE, MMMM d')}
+                </h3>
+                <p className="text-[12px] text-gray-500 mt-1">{pendingDayOff.reason}</p>
+                <p className="text-[11px] text-gray-400 mt-2">
+                  Your schedule stays open until an admin approves this request.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleRemoveBreak(pendingDayOff.id)}
+                className="shrink-0 w-8 h-8 rounded-lg border border-amber-200 flex items-center justify-center text-amber-500 hover:bg-white transition-colors"
+                aria-label="Cancel request"
+              >
+                <Trash2 size={14} />
+              </button>
+            </motion.div>
+          )}
+
+          {approvedFullDayOff ? (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-[#fdf3ec] border border-terracotta/20 rounded-2xl p-6 text-center space-y-4"
+            >
+              <div className="w-14 h-14 mx-auto bg-white rounded-2xl border border-terracotta/20 flex items-center justify-center">
+                <CalendarOff size={24} className="text-terracotta" />
+              </div>
+              <div>
+                <p className="small-caps text-terracotta mb-1">Day off · Approved</p>
+                <h3 className="serif text-2xl text-slate">{format(selectedDate, 'EEEE, MMMM d')}</h3>
+                <p className="text-[13px] text-gray-500 mt-2">
+                  {dayBreaks.find(b => b.kind === 'day_off' && b.status === 'approved')?.reason ?? 'Unavailable'}
+                </p>
+              </div>
+              <p className="text-[12px] text-gray-400">No sessions can be booked on this day.</p>
+              <button
+                type="button"
+                onClick={() => {
+                  const off = dayBreaks.find(b => b.kind === 'day_off' && b.status === 'approved');
+                  if (off) handleRemoveBreak(off.id);
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-terracotta/30 bg-white text-terracotta text-[12px] font-bold hover:bg-[#fdf3ec] transition-colors"
+              >
+                <Trash2 size={14} /> Remove day off
+              </button>
+            </motion.div>
+          ) : (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <p className="small-caps text-gray-400">Time Slots</p>
+                <p className="text-[13px] text-gray-400">
+                  {format(selectedDate, 'EEEE, MMMM d')} · {booked} booked · {available} available
+                </p>
+              </div>
+              <AnimatePresence mode="wait">
+                <motion.div key={selectedKey} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                  className="bg-white rounded-2xl border border-brand-border shadow-sm divide-y divide-brand-border overflow-hidden">
+                  {slots.map(slot => (
+                    <div
+                      key={slot.id}
+                      className={cn(
+                        'px-5 py-4 flex items-center gap-4',
+                        slot.status === 'break' && 'opacity-50 bg-brand-50/30',
+                        slot.status === 'off' && 'bg-[#fdf8f5]',
+                      )}
+                    >
                       <div className="flex items-center gap-2 w-24 shrink-0">
                         <Clock size={14} className="text-gray-300" />
                         <span className="text-[13px] font-semibold text-gray-500">{slot.time}</span>
                       </div>
                       {slot.status === 'booked' && <div className="w-1 h-8 bg-forest rounded-full shrink-0" />}
+                      {slot.status === 'off' && <div className="w-1 h-8 bg-terracotta rounded-full shrink-0" />}
                       <div className="flex-1 min-w-0">
                         {slot.status === 'booked' ? (
                           <div className="flex items-center gap-2">
@@ -168,22 +352,17 @@ export default function Schedule() {
                           </div>
                         ) : slot.status === 'break' ? (
                           <span className="text-[13px] italic text-gray-400">Break / Blocked</span>
+                        ) : slot.status === 'off' ? (
+                          <div>
+                            <span className="text-[13px] font-semibold text-terracotta">Unavailable</span>
+                            {slot.offReason && (
+                              <p className="text-[11px] text-gray-400 mt-0.5 truncate">{slot.offReason}</p>
+                            )}
+                          </div>
                         ) : (
                           <span className="text-[12px] font-semibold text-forest/60 uppercase tracking-wider">Available</span>
                         )}
                       </div>
-                      {slot.status === 'available' && (
-                        <button type="button" onClick={() => setSlots(prev => prev.map(s => s.id === slot.id ? { ...s, status: 'break' } : s))}
-                          className="text-[12px] font-bold text-forest bg-[#f0f4ee] border border-forest/20 px-4 py-1.5 rounded-lg hover:bg-[#e4ebe0] transition-colors">
-                          Block
-                        </button>
-                      )}
-                      {slot.status === 'break' && (
-                        <button type="button" onClick={() => setSlots(prev => prev.map(s => s.id === slot.id ? { ...s, status: 'available' } : s))}
-                          className="text-[12px] font-bold text-gray-500 bg-white border border-brand-border px-4 py-1.5 rounded-lg hover:bg-brand-50 transition-colors">
-                          Unblock
-                        </button>
-                      )}
                       {slot.status === 'booked' && slot.apptId && (
                         <button type="button" onClick={() => navigate(`/practitioner/session/${slot.apptId}`)}
                           className="flex items-center gap-1.5 px-4 py-1.5 bg-forest rounded-lg text-white text-[12px] font-bold hover:bg-[#3d5636] transition-colors">
@@ -191,11 +370,88 @@ export default function Schedule() {
                         </button>
                       )}
                     </div>
-                  ))
-                )}
-              </motion.div>
-            </AnimatePresence>
-          </div>
+                  ))}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          )}
+
+          {upcomingBreaks.length > 0 && (
+            <section className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="small-caps text-gray-400">Time Off & Leave</p>
+                <button
+                  type="button"
+                  onClick={openDayOffModal}
+                  className="text-[12px] font-semibold text-forest hover:underline"
+                >
+                  Day off
+                </button>
+              </div>
+              <div className="space-y-2.5">
+                {upcomingBreaks.map((item, i) => {
+                  const Icon = reasonIcon(item.reason);
+                  return (
+                    <motion.div
+                      key={item.id}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.04 }}
+                      className="bg-white rounded-2xl border border-brand-border shadow-sm p-4 flex items-center gap-3"
+                    >
+                      <div
+                        className={cn(
+                          'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
+                          item.kind === 'day_off' ? 'bg-[#fdf3ec] text-terracotta' : 'bg-amber-50 text-amber-600',
+                        )}
+                      >
+                        <Icon size={18} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-[12px] font-bold text-slate">
+                            {format(parseISO(item.date), 'EEE, MMM d')}
+                          </p>
+                          <span className={cn('small-caps text-[7px] px-2 py-0.5 rounded-full border capitalize', STATUS_STYLE[item.status])}>
+                            {item.status}
+                          </span>
+                          <span
+                            className={cn(
+                              'small-caps text-[7px] px-2 py-0.5 rounded-full border',
+                              item.kind === 'day_off'
+                                ? 'bg-[#fdf3ec] text-terracotta border-terracotta/20'
+                                : 'bg-amber-50 text-amber-700 border-amber-200',
+                            )}
+                          >
+                            {item.kind === 'day_off' ? 'Day off' : 'Partial'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-gray-500 mt-0.5 truncate">{item.reason}</p>
+                        {item.status === 'rejected' && item.rejectionReason && (
+                          <p className="text-[10px] text-terracotta mt-0.5">Rejected: {item.rejectionReason}</p>
+                        )}
+                        {item.kind === 'partial' && (
+                          <p className="small-caps text-[7px] text-gray-400 mt-0.5">
+                            {format24hLabel(item.startTime)} – {format24hLabel(item.endTime)}
+                          </p>
+                        )}
+                      </div>
+                      {(item.status === 'pending' || item.status === 'rejected') && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveBreak(item.id)}
+                          className="w-8 h-8 rounded-lg border border-brand-border flex items-center justify-center text-gray-300 hover:text-terracotta hover:border-terracotta/30 transition-colors shrink-0"
+                          aria-label="Cancel request"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
         </div>
 
         <div className="space-y-4">
@@ -245,14 +501,19 @@ export default function Schedule() {
         </div>
       </div>
 
-      <AddAvailabilityModal
-        open={showAvailability}
-        onClose={() => setShowAvailability(false)}
-        existingTimes={existingTimes}
-        onAdd={(time, status) => {
-          const err = addSlot(time, status);
-          if (!err) setShowAvailability(false);
-          return err;
+      <DayOffModal
+        open={showDayOff}
+        onClose={() => setShowDayOff(false)}
+        selectedDate={selectedKey}
+        onSubmit={(entry) => {
+          setBreaks(prev => {
+            const withoutSameDayFull = entry.kind === 'day_off'
+              ? prev.filter(b => !(b.date === entry.date && b.kind === 'day_off'))
+              : prev;
+            return [...withoutSameDayFull, entry];
+          });
+          setSelectedDate(parseISO(entry.date));
+          setShowDayOff(false);
         }}
       />
 
@@ -265,99 +526,180 @@ export default function Schedule() {
   );
 }
 
-function AddAvailabilityModal({
-  open, onClose, existingTimes, onAdd,
+function DayOffModal({
+  open,
+  onClose,
+  selectedDate,
+  onSubmit,
 }: {
   open: boolean;
   onClose: () => void;
-  existingTimes: string[];
-  onAdd: (time: string, status: 'available' | 'break') => string | null;
+  selectedDate: string;
+  onSubmit: (entry: PractitionerBreak) => void;
 }) {
-  const [time, setTime] = useState('10:00 AM');
-  const [customTime, setCustomTime] = useState('');
-  const [useCustom, setUseCustom] = useState(false);
-  const [slotType, setSlotType] = useState<'available' | 'break'>('available');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
+  const [kind, setKind] = useState<UnavailabilityKind>('day_off');
+  const [formDate, setFormDate] = useState(selectedDate);
+  const [startTime, setStartTime] = useState('14:00');
+  const [endTime, setEndTime] = useState('16:00');
+  const [reason, setReason] = useState<string>(REASON_OPTIONS[0]);
+  const [notes, setNotes] = useState('');
+
+  useEffect(() => {
+    if (open) setFormDate(selectedDate);
+  }, [open, selectedDate]);
 
   const reset = () => {
-    setTime('10:00 AM'); setCustomTime(''); setUseCustom(false);
-    setSlotType('available'); setError(''); setSuccess(false);
+    setKind('day_off');
+    setFormDate(selectedDate);
+    setStartTime('14:00');
+    setEndTime('16:00');
+    setReason(REASON_OPTIONS[0]);
+    setNotes('');
   };
 
-  const handleClose = () => { reset(); onClose(); };
+  const handleClose = () => {
+    reset();
+    onClose();
+  };
 
-  const resolvedTime = useCustom ? customTime.trim() : time;
+  const canSubmit =
+    formDate &&
+    reason &&
+    (kind === 'day_off' || parse24hMinutes(endTime) > parse24hMinutes(startTime));
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    if (!resolvedTime) {
-      setError('Please select or enter a time.');
-      return;
-    }
-    if (!/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i.test(resolvedTime)) {
-      setError('Use format like 10:00 AM');
-      return;
-    }
-    const normalized = resolvedTime.replace(/\s*(am|pm)\s*$/i, m => ` ${m.toUpperCase()}`);
-    if (existingTimes.some(t => t.toUpperCase() === normalized.toUpperCase())) {
-      setError('A slot already exists at this time.');
-      return;
-    }
-    const err = onAdd(normalized, slotType);
-    if (err) { setError(err); return; }
-    setSuccess(true);
-    setTimeout(() => { reset(); onClose(); }, 800);
+  const handleSubmit = () => {
+    if (!canSubmit) return;
+    const fullReason = notes.trim() ? `${reason} — ${notes.trim()}` : reason;
+    onSubmit({
+      id: `br-${Date.now()}`,
+      practitionerId: CURRENT_PRACTITIONER_ID,
+      practitionerName: 'Dr. Sarah Mitchell',
+      date: formDate,
+      startTime: kind === 'day_off' ? '00:00' : startTime,
+      endTime: kind === 'day_off' ? '23:59' : endTime,
+      reason: fullReason,
+      kind,
+      status: kind === 'day_off' ? 'pending' : 'approved',
+      isRecurring: false,
+      recurringDay: null,
+      requestedAt: new Date().toISOString(),
+      reviewedAt: kind === 'partial' ? new Date().toISOString() : null,
+    });
+    reset();
   };
 
   return (
-    <Modal open={open} onClose={handleClose} title="Add Availability">
-      {success ? (
-        <div className="flex flex-col items-center py-8 gap-3">
-          <CheckCircle2 size={32} className="text-forest" />
-          <p className="text-[14px] font-semibold text-slate">Slot added to schedule</p>
+    <Modal open={open} onClose={handleClose} title="Add Time Off">
+      <div className="space-y-5">
+        <div className="grid grid-cols-2 gap-2">
+          {([
+            { id: 'day_off' as const, label: 'Full day off', desc: 'Requires admin approval' },
+            { id: 'partial' as const, label: 'Partial block', desc: 'Specific hours' },
+          ]).map(option => (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => setKind(option.id)}
+              className={cn(
+                'p-3 rounded-xl border text-left transition-all',
+                kind === option.id
+                  ? 'border-forest bg-[#f0f4ee]'
+                  : 'border-brand-border bg-white hover:border-forest/20',
+              )}
+            >
+              <p className="text-[12px] font-bold text-slate">{option.label}</p>
+              <p className="text-[10px] text-gray-400 mt-0.5">{option.desc}</p>
+            </button>
+          ))}
         </div>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="small-caps text-[8px] text-gray-400 mb-1.5 block">Time</label>
-            {!useCustom ? (
-              <select value={time} onChange={e => setTime(e.target.value)}
-                className="w-full bg-brand-50 border border-brand-border rounded-xl py-2.5 px-4 text-[13px] outline-none focus:border-forest/30">
-                {TIME_PRESETS.filter(t => !existingTimes.some(e => e.toUpperCase() === t.toUpperCase())).map(t => (
-                  <option key={t} value={t}>{t}</option>
+
+        <div>
+          <label className="small-caps text-[8px] text-gray-400 block mb-2">Date</label>
+          <input
+            type="date"
+            value={formDate}
+            onChange={e => setFormDate(e.target.value)}
+            className="w-full bg-brand-50 border border-brand-border rounded-xl py-2.5 px-3 text-[13px] text-slate outline-none focus:border-forest/30"
+          />
+        </div>
+
+        {kind === 'partial' && (
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="small-caps text-[8px] text-gray-400 block mb-2">From</label>
+              <select
+                value={startTime}
+                onChange={e => setStartTime(e.target.value)}
+                className="w-full bg-brand-50 border border-brand-border rounded-xl py-2.5 px-3 text-[13px] text-slate outline-none focus:border-forest/30"
+              >
+                {PARTIAL_START_OPTIONS.map(t => (
+                  <option key={t} value={t}>{format24hLabel(t)}</option>
                 ))}
               </select>
-            ) : (
-              <input value={customTime} onChange={e => setCustomTime(e.target.value)} placeholder="e.g. 10:30 AM"
-                className="w-full bg-brand-50 border border-brand-border rounded-xl py-2.5 px-4 text-[13px] outline-none focus:border-forest/30" />
-            )}
-            <button type="button" onClick={() => setUseCustom(v => !v)} className="text-[12px] text-forest font-semibold mt-2 hover:underline">
-              {useCustom ? 'Choose from presets' : 'Enter custom time'}
-            </button>
-          </div>
-
-          <div>
-            <label className="small-caps text-[8px] text-gray-400 mb-1.5 block">Slot Type</label>
-            <div className="grid grid-cols-2 gap-2">
-              {(['available', 'break'] as const).map(type => (
-                <button key={type} type="button" onClick={() => setSlotType(type)}
-                  className={cn('py-2.5 rounded-xl text-[12px] font-bold border capitalize transition-all',
-                    slotType === type ? 'bg-slate text-white border-slate' : 'bg-brand-50 text-gray-400 border-brand-border')}>
-                  {type === 'break' ? 'Break / Block' : 'Available'}
-                </button>
-              ))}
+            </div>
+            <div>
+              <label className="small-caps text-[8px] text-gray-400 block mb-2">To</label>
+              <select
+                value={endTime}
+                onChange={e => setEndTime(e.target.value)}
+                className="w-full bg-brand-50 border border-brand-border rounded-xl py-2.5 px-3 text-[13px] text-slate outline-none focus:border-forest/30"
+              >
+                {PARTIAL_END_OPTIONS.map(t => (
+                  <option key={t} value={t}>{format24hLabel(t)}</option>
+                ))}
+              </select>
             </div>
           </div>
+        )}
 
-          {error && <p className="text-[12px] text-terracotta font-medium">{error}</p>}
+        <div>
+          <label className="small-caps text-[8px] text-gray-400 block mb-2">Reason</label>
+          <select
+            value={reason}
+            onChange={e => setReason(e.target.value)}
+            className="w-full bg-brand-50 border border-brand-border rounded-xl py-2.5 px-3 text-[13px] text-slate outline-none focus:border-forest/30"
+          >
+            {REASON_OPTIONS.map(r => (
+              <option key={r} value={r}>{r}</option>
+            ))}
+          </select>
+        </div>
 
-          <div className="flex gap-3 pt-2">
-            <button type="button" onClick={handleClose} className="flex-1 py-3 rounded-xl border border-brand-border text-[13px] font-bold hover:bg-brand-50">Cancel</button>
-            <button type="submit" className="flex-1 py-3 rounded-xl bg-slate text-white text-[13px] font-bold hover:bg-slate/90">Add Slot</button>
-          </div>
-        </form>
-      )}
+        <div>
+          <label className="small-caps text-[8px] text-gray-400 block mb-2">Notes (optional)</label>
+          <textarea
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            rows={2}
+            placeholder="e.g. Annual family trip"
+            className="w-full bg-brand-50 border border-brand-border rounded-xl py-2.5 px-3 text-[13px] text-slate placeholder:text-gray-300 outline-none focus:border-forest/30 resize-none"
+          />
+        </div>
+
+        {kind === 'day_off' && (
+          <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+            Full day off requests stay <strong>pending</strong> until an admin approves them. Your calendar remains bookable until then.
+          </p>
+        )}
+
+        <div className="flex gap-3 pt-1">
+          <button
+            type="button"
+            onClick={handleClose}
+            className="flex-1 py-3 rounded-xl border border-brand-border text-slate text-[13px] font-bold hover:bg-brand-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={!canSubmit}
+            className="flex-1 py-3 rounded-xl bg-forest text-white text-[13px] font-bold disabled:opacity-40 hover:bg-forest/90 transition-colors"
+          >
+            {kind === 'day_off' ? 'Submit request' : 'Save time off'}
+          </button>
+        </div>
+      </div>
     </Modal>
   );
 }

@@ -2,7 +2,7 @@ import { motion } from 'motion/react';
 import {
   ChevronRight, AlertTriangle, Clock, BookOpen, IndianRupee,
   CheckCircle2, XCircle, UserPlus, Users, TrendingUp, UserCheck,
-  ShieldAlert,
+  ShieldAlert, CalendarOff,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -10,6 +10,7 @@ import {
   ADMIN_STATS, ADMIN_THERAPISTS, ADMIN_ACTIVITY, ADMIN_DISPUTES,
   therapistFullName, type ActivityType,
 } from '../../adminData';
+import { MOCK_PRACTITIONER_BREAKS } from '../../mockData';
 import { cn } from '../../lib/utils';
 
 const ACTIVITY_CONFIG: Record<ActivityType, { bg: string; icon: LucideIcon }> = {
@@ -36,23 +37,6 @@ function formatCurrency(n: number) {
   return `₹${n.toLocaleString('en-IN')}`;
 }
 
-const METADATA_LABELS: Record<string, string> = {
-  user_growth_weekly_pct: 'User Growth (weekly)',
-  practitioner_growth_weekly_pct: 'Practitioner Growth (weekly)',
-  avg_session_duration_minutes: 'Avg Session Duration',
-  cancelled_bookings_today: 'Cancelled Today',
-  no_show_rate_pct: 'No-Show Rate',
-  peak_booking_hour: 'Peak Booking Hour',
-  last_recalculated_at: 'Last Recalculated',
-};
-
-function formatMetadataValue(key: string, val: string | number): string {
-  if (key.includes('pct') || key.includes('rate')) return `${val}%`;
-  if (key === 'avg_session_duration_minutes') return `${val} min`;
-  if (key === 'last_recalculated_at') return formatRelativeTime(String(val));
-  return String(val);
-}
-
 export default function AdminDashboard() {
   const navigate = useNavigate();
 
@@ -62,6 +46,7 @@ export default function AdminDashboard() {
 
   const openDisputes = ADMIN_DISPUTES.filter(d => d.status === 'open').length;
   const pendingApprovals = ADMIN_THERAPISTS.filter(t => t.status === 'pending').length;
+  const pendingLeave = MOCK_PRACTITIONER_BREAKS.filter(b => b.kind === 'day_off' && b.status === 'pending').length;
   const verifiedTherapists = ADMIN_THERAPISTS.filter(t => t.status === 'verified').slice(0, 5);
 
   const primaryStats = [
@@ -84,7 +69,7 @@ export default function AdminDashboard() {
   return (
     <div className="p-6 lg:p-8">
       <div className="mb-8">
-        <p className="small-caps text-gray-400 mb-1">{today} · GET /admin/stats/</p>
+        <p className="small-caps text-gray-400 mb-1">{today}</p>
         <h1 className="serif text-4xl text-slate leading-tight">Admin Panel</h1>
         <p className="text-[14px] text-gray-400 mt-1">Platform overview</p>
       </div>
@@ -142,32 +127,9 @@ export default function AdminDashboard() {
         })}
       </div>
 
-      {Object.keys(ADMIN_STATS.metadata).length > 0 && (
-        <section className="mb-8">
-          <div className="flex items-center justify-between mb-3">
-            <p className="small-caps text-gray-400">Stats Metadata · GET /admin/stats/</p>
-            <p className="text-[11px] text-gray-400">
-              Snapshot {ADMIN_STATS.date} · updated {formatRelativeTime(ADMIN_STATS.updatedAt)}
-            </p>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
-            {Object.entries(ADMIN_STATS.metadata).map(([key, val]) => (
-              <div key={key} className="bg-white rounded-2xl border border-brand-border shadow-sm px-4 py-3">
-                <p className="small-caps text-[7px] text-gray-400 mb-2 leading-tight">
-                  {METADATA_LABELS[key] ?? key.replace(/_/g, ' ')}
-                </p>
-                <p className="text-lg font-bold text-slate leading-none">
-                  {formatMetadataValue(key, val)}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
         <div className="xl:col-span-3 space-y-6">
-          {(openDisputes > 0 || pendingApprovals > 0) && (
+          {(openDisputes > 0 || pendingApprovals > 0 || pendingLeave > 0) && (
             <div className="space-y-3">
               {openDisputes > 0 && (
                 <button onClick={() => navigate('/admin/disputes')}
@@ -195,6 +157,19 @@ export default function AdminDashboard() {
                   <ChevronRight size={16} className="text-gray-300" />
                 </button>
               )}
+              {pendingLeave > 0 && (
+                <button onClick={() => navigate('/admin/leave')}
+                  className="w-full text-left bg-white border border-brand-border rounded-2xl p-4 flex items-center gap-3 hover:shadow-sm transition-all">
+                  <div className="w-9 h-9 bg-[#fdf3ec] rounded-xl flex items-center justify-center text-terracotta shrink-0">
+                    <CalendarOff size={16} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="small-caps text-[8px] text-terracotta mb-0.5">Leave Requests</p>
+                    <p className="text-[13px] text-slate font-medium">{pendingLeave} day-off request{pendingLeave > 1 ? 's' : ''} awaiting approval</p>
+                  </div>
+                  <ChevronRight size={16} className="text-gray-300" />
+                </button>
+              )}
             </div>
           )}
 
@@ -214,7 +189,7 @@ export default function AdminDashboard() {
                 </thead>
                 <tbody>
                   {verifiedTherapists.map(t => (
-                    <tr key={t.id} className="border-b border-brand-border last:border-0 hover:bg-brand-50/30 cursor-pointer" onClick={() => navigate(`/admin/therapists?selected=${t.id}`)}>
+                    <tr key={t.id} className="border-b border-brand-border last:border-0 hover:bg-brand-50/30 cursor-pointer" onClick={() => navigate(`/admin/therapists/${t.id}`)}>
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-lg bg-[#f5f7f2] border border-brand-border flex items-center justify-center text-forest font-bold text-[11px] shrink-0">
@@ -243,7 +218,7 @@ export default function AdminDashboard() {
         <div className="xl:col-span-2 space-y-6">
           <section className="space-y-3">
             <div className="flex items-center justify-between">
-              <p className="small-caps text-gray-400">Recent Activity · GET /admin/activity/</p>
+              <p className="small-caps text-gray-400">Recent Activity</p>
               <button onClick={() => navigate('/admin/activity')} className="text-[12px] font-semibold text-forest hover:underline">View all →</button>
             </div>
             <div className="bg-white rounded-2xl border border-brand-border shadow-sm p-4 space-y-4">
