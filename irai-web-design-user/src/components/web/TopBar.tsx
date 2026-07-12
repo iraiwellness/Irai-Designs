@@ -4,6 +4,7 @@ import { Bell, ChevronDown, LogOut, User, FileHeart } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { cn } from '../../lib/utils';
 import TopNav from './TopNav';
+import BrandLogo from '../BrandLogo';
 import { USER_NAV } from './navConfig';
 
 function initials(name: string) {
@@ -28,7 +29,7 @@ export default function TopBar() {
   return (
     <header className="h-16 shrink-0 bg-white border-b border-brand-border px-4 lg:px-6 flex items-center gap-3 lg:gap-5 sticky top-0 z-40">
       <div className="flex items-center gap-3 shrink-0">
-        <img src="/irai_logo.png" alt="IRAI" className="w-9 h-9 rounded-xl object-cover" />
+        <BrandLogo size="sm" centered={false} variant="on-light" />
         <div className="hidden md:block min-w-0">
           <p className="font-serif text-lg text-slate leading-none">IRAI</p>
           <p className="small-caps text-[7px] text-gray-400 mt-0.5">Member Portal</p>

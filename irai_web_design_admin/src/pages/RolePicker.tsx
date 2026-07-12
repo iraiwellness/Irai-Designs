@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { LayoutDashboard, Activity, ChevronRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import BrandLogo from '../components/BrandLogo';
 
 const ROLES = [
   {
@@ -48,9 +49,9 @@ export default function RolePicker() {
           initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: 'easeOut' }}
-          className="text-center relative z-10"
+          className="flex flex-col items-center text-center relative z-10"
         >
-          <img src="/irai_logo.png" alt="IRAI" className="w-20 h-20 rounded-[24px] object-cover mb-6 border border-white/10" />
+          <BrandLogo size="lg" className="mb-6" />
           <h1 className="font-serif text-[56px] text-white leading-none tracking-tight">IRAI</h1>
           <p className="text-[10px] uppercase tracking-[0.35em] text-white/30 mt-3 font-semibold">
             Wellness Platform

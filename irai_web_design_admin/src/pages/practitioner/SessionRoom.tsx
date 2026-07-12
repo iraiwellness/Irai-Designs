@@ -7,6 +7,7 @@ import {
   Users, Clock, Save, ArrowLeft, AlertTriangle, Info,
 } from 'lucide-react';
 import { MOCK_APPOINTMENTS, MOCK_GROUP_SESSIONS } from '../../mockData';
+import BrandLogo from '../../components/BrandLogo';
 import { cn } from '../../lib/utils';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -148,7 +149,7 @@ export default function PractitionerSessionRoom() {
                     style={{ width: 72, height: 72, margin: 'auto' }}
                   />
                 ))}
-                <img src="/irai_logo.png" alt="IRAI" className="w-[72px] h-[72px] rounded-full object-cover border border-white/15 relative z-10" />
+                <BrandLogo size="xl" className="relative z-10 border-white/15" />
               </div>
 
               <p className="small-caps text-[8px] text-white/30 mb-2 tracking-widest">

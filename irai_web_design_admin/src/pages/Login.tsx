@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react';
 import { useAuth, type Role } from '../context/AuthContext';
+import BrandLogo from '../components/BrandLogo';
 import { cn } from '../lib/utils';
 
 const CONFIG = {
@@ -76,8 +77,8 @@ export default function Login() {
           Back
         </button>
 
-        <div className="flex-1 flex flex-col items-center justify-center px-12 relative z-10">
-          <img src="/irai_logo.png" alt="IRAI" className="w-16 h-16 rounded-[22px] object-cover mb-5 border border-white/10" />
+        <div className="flex-1 flex flex-col items-center justify-center px-12 relative z-10 text-center">
+          <BrandLogo size="md" className="mb-5" />
           <p className="font-serif text-[36px] text-white leading-none mb-2">IRAI</p>
           <p className="text-[9px] uppercase tracking-[0.3em] text-white/30 font-semibold mb-6">
             Wellness Platform

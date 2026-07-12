@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import { ArrowLeft, Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { GuestRoute } from '../components/ProtectedRoute';
+import BrandLogo from '../components/BrandLogo';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -59,8 +60,8 @@ function LoginForm({ email, setEmail, password, setPassword, showPass, setShowPa
   return (
     <div className="min-h-screen flex">
       <div className="hidden lg:flex w-[42%] bg-gradient-to-br from-[#1a2f4a] to-[#4B7399] relative overflow-hidden items-center justify-center px-12">
-        <div className="relative z-10 text-white max-w-sm">
-          <img src="/irai_logo.png" alt="IRAI" className="w-16 h-16 rounded-2xl object-cover mb-6 border border-white/10" />
+        <div className="relative z-10 text-white max-w-sm flex flex-col items-center text-center">
+          <BrandLogo size="md" className="mb-6" />
           <p className="small-caps text-white/40 mb-3">Member Access</p>
           <h1 className="serif text-4xl leading-tight mb-4">Sign in to your wellness portal</h1>
           <p className="text-[14px] text-white/50">Access sessions, insights, and your health vault.</p>

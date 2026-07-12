@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Eye, EyeOff, Loader2, CheckCircle2, Clock } from 'lucide-react';
 import { MOCK_SIGNUP_RESPONSE } from '../mockData';
+import BrandLogo from '../components/BrandLogo';
 import { cn } from '../lib/utils';
 
 export default function Signup() {
@@ -42,7 +43,7 @@ export default function Signup() {
           <ArrowLeft size={16} /> Back to sign in
         </button>
         <div className="flex-1 flex flex-col items-center justify-center px-12 relative z-10 text-center">
-          <img src="/irai_logo.png" alt="IRAI" className="w-16 h-16 rounded-[22px] object-cover mb-5 border border-white/10" />
+          <BrandLogo size="md" className="mb-5" />
           <h2 className="font-serif text-[28px] text-white leading-tight">Join as Practitioner</h2>
           <p className="text-[12px] text-white/35 mt-2 font-medium max-w-xs">
             Create your practitioner account. Your profile will be pending until verified.

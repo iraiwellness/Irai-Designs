@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { useAuth, userHomePath } from '../context/AuthContext';
+import BrandLogo from '../components/BrandLogo';
 import { useEffect } from 'react';
 
 export default function Landing() {
@@ -17,8 +18,8 @@ export default function Landing() {
       <div className="hidden lg:flex w-[48%] bg-gradient-to-br from-[#263d23] to-[#192b16] relative overflow-hidden flex-col justify-center px-16">
         <div className="absolute -top-20 -right-20 w-64 h-64 bg-white/[0.04] rounded-full" />
         <div className="absolute bottom-10 left-10 w-40 h-40 bg-white/[0.03] rounded-full blur-2xl" />
-        <div className="relative z-10 max-w-md">
-          <img src="/irai_logo.png" alt="IRAI" className="w-16 h-16 rounded-2xl object-cover mb-8 border border-white/10" />
+        <div className="relative z-10 max-w-md flex flex-col items-center lg:items-start text-center lg:text-left">
+          <BrandLogo size="md" className="mb-8 lg:!mx-0" />
           <p className="small-caps text-white/40 mb-4">Holistic Wellness</p>
           <h1 className="serif text-5xl text-white leading-tight mb-6">
             Yoga, therapy &amp; care — personalised for you
@@ -34,8 +35,8 @@ export default function Landing() {
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center p-8 lg:p-16">
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="max-w-md w-full text-center lg:text-left">
-          <img src="/irai_logo.png" alt="IRAI" className="w-20 h-20 mx-auto lg:mx-0 mb-6 rounded-2xl object-cover" />
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="max-w-md w-full flex flex-col items-center lg:items-start text-center lg:text-left">
+          <BrandLogo size="lg" variant="on-light" className="mb-6 lg:!mx-0" />
           <h2 className="serif text-4xl text-slate mb-3">Welcome to IRAI</h2>
           <p className="text-[14px] text-gray-400 mb-8 leading-relaxed">
             Your member portal for booking sessions, tracking progress, and managing your wellness journey.
