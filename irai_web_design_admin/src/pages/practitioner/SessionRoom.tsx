@@ -148,9 +148,7 @@ export default function PractitionerSessionRoom() {
                     style={{ width: 72, height: 72, margin: 'auto' }}
                   />
                 ))}
-                <div className="w-18 h-18 w-[72px] h-[72px] bg-white/[0.08] border border-white/15 rounded-full flex items-center justify-center relative z-10">
-                  <span className="font-serif text-2xl text-white/80">ir</span>
-                </div>
+                <img src="/irai_logo.png" alt="IRAI" className="w-[72px] h-[72px] rounded-full object-cover border border-white/15 relative z-10" />
               </div>
 
               <p className="small-caps text-[8px] text-white/30 mb-2 tracking-widest">

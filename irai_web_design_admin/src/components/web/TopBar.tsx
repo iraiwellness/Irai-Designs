@@ -110,9 +110,7 @@ export default function TopBar({ workspace, navItems }: TopBarProps) {
     return (
       <header className="h-16 shrink-0 bg-white border-b border-brand-border px-4 lg:px-6 flex items-center gap-3 lg:gap-5 sticky top-0 z-40">
         <div className="flex items-center gap-3 shrink-0">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#263d23] to-[#192b16] flex items-center justify-center">
-            <span className="font-serif text-sm text-white/90 font-semibold">ir</span>
-          </div>
+          <img src="/irai_logo.png" alt="IRAI" className="w-9 h-9 rounded-xl object-cover" />
           <div className="hidden md:block min-w-0">
             <p className="font-serif text-lg text-slate leading-none">IRAI</p>
             <p className="small-caps text-[7px] text-gray-400 mt-0.5">{workspaceLabel}</p>

@@ -7,6 +7,7 @@ Design prototypes for the IRAI wellness platform.
 | [`mobile-design-user/`](./mobile-design-user/) | `irai-yoga` @ `master` | Mobile-first **user** design (client-facing app) |
 | [`mobile-design-admin/`](./mobile-design-admin/) | `irai-yoga` @ `practioner-ui` | Mobile-first **practitioner / admin** design |
 | [`irai_web_design_admin/`](./irai_web_design_admin/) | — | Desktop web UI for practitioner workspace and admin panel |
+| [`irai-web-design-user/`](./irai-web-design-user/) | — | Desktop web UI for patient/member portal |
 
 ## Run locally
 
@@ -21,4 +22,7 @@ cd mobile-design-admin && npm install && npm run dev
 
 # Web admin / practitioner
 cd irai_web_design_admin && nvm use && npm install && npm run dev
+
+# Web — patient/member portal
+cd irai-web-design-user && nvm use && npm install && npm run dev
 ```

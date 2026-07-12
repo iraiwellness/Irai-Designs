@@ -50,9 +50,7 @@ export default function RolePicker() {
           transition={{ duration: 0.6, ease: 'easeOut' }}
           className="text-center relative z-10"
         >
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-[24px] bg-white/[0.08] border border-white/10 mb-6">
-            <span className="font-serif text-3xl text-white/90 font-semibold">ir</span>
-          </div>
+          <img src="/irai_logo.png" alt="IRAI" className="w-20 h-20 rounded-[24px] object-cover mb-6 border border-white/10" />
           <h1 className="font-serif text-[56px] text-white leading-none tracking-tight">IRAI</h1>
           <p className="text-[10px] uppercase tracking-[0.35em] text-white/30 mt-3 font-semibold">
             Wellness Platform
